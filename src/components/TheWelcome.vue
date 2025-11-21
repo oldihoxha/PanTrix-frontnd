@@ -158,7 +158,7 @@ const addProduct = async () => {
 
   try {
     const baseUrl = import.meta.env.VITE_API_URL;
-    const response = await axios.get(`${baseUrl}/test`);
+    const response = await axios.get(`https://pantrix.onrender.com/test`);
     console.log('Test response:', response.data);
   } catch (error) {
     console.error('Fehler beim Abrufen von /test:', error)
