@@ -154,7 +154,16 @@ const validateDate = (dateStr: string): boolean => {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
 }
 
-const addProduct = () => {
+const addProduct = async () => {
+
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL;
+    const response = await axios.get(`${baseUrl}/test`);
+    console.log('Test response:', response.data);
+  } catch (error) {
+    console.error('Fehler beim Abrufen von /test:', error)
+  }
+
   dateError.value = ''
   if (!newProductName.value.trim()) {
 
