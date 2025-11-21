@@ -176,8 +176,6 @@ const addProduct = () => {
       newProductExpiryDate.value = ''
       dateError.value = ''
       showAddProductModal.value = false
-
-      await save()
     }
   }
 }
