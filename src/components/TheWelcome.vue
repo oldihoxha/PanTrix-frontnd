@@ -108,12 +108,16 @@ const loadThings = async () => {
 
 onMounted(loadThings)
 
+const testResult = ref<string>('')
+
 const test = async () => {
   try {
-    const response = await axios.get(`https://pantrix.onrender.com/test`)
+    const response = await axios.get('https://pantrix.onrender.com/test')
     console.log('Test response:', response.data)
+    testResult.value = String(response.data)
   } catch (error) {
     console.error('Fehler beim Abrufen von /test:', error)
+    testResult.value = 'Fehler beim Laden von /test'
   }
 }
 
@@ -208,6 +212,7 @@ const addProduct = async () => {
 
     <div class="categories">
       <button class="test-button" @click="test">Test</button>
+      <p v-if="testResult">Test\-Ergebnis: {{ testResult }}</p>
       <div v-for="category in categories" :key="category.name" class="category">
         <button @click="toggleCategory(category.name)" class="category-button">
           {{ category.name }}
