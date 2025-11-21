@@ -108,6 +108,15 @@ const loadThings = async () => {
 
 onMounted(loadThings)
 
+const test = async () => {
+  try {
+    const response = await axios.get(`https://pantrix.onrender.com/test`)
+    console.log('Test response:', response.data)
+  } catch (error) {
+    console.error('Fehler beim Abrufen von /test:', error)
+  }
+}
+
 const save = async () => {
   try {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
@@ -198,6 +207,7 @@ const addProduct = async () => {
     <template #heading>Kategorien und Produkte</template>
 
     <div class="categories">
+      <button class="test-button" @click="test">Test</button>
       <div v-for="category in categories" :key="category.name" class="category">
         <button @click="toggleCategory(category.name)" class="category-button">
           {{ category.name }}
