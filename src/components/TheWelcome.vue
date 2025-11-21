@@ -116,7 +116,7 @@ const test = async () => {
   isLoading.value = true
   try {
     const response = await axios.get('https://pantrix.onrender.com/test')
-    console.log('Test response:', response.data)
+    console.log('Backend-Werte:', response.data)
     testResult.value = String(response.data)
   } catch (error) {
     console.error('Fehler beim Abrufen von /test:', error)
