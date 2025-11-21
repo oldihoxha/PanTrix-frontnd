@@ -110,7 +110,10 @@ onMounted(loadThings)
 
 const testResult = ref<string>('')
 
+const isLoading = ref(false)
+
 const test = async () => {
+  isLoading.value = true
   try {
     const response = await axios.get('https://pantrix.onrender.com/test')
     console.log('Test response:', response.data)
@@ -118,6 +121,8 @@ const test = async () => {
   } catch (error) {
     console.error('Fehler beim Abrufen von /test:', error)
     testResult.value = 'Fehler beim Laden von /test'
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -211,7 +216,10 @@ const addProduct = async () => {
     <template #heading>Kategorien und Produkte</template>
 
     <div class="categories">
-      <button class="test-button" @click="test">Test</button>
+      <button class="test-button" @click="test" :disabled="isLoading">
+        <span v-if="isLoading" class="loader"></span>
+        <span v-else>Test</span>
+      </button>
       <p v-if="testResult">Test\-Ergebnis: {{ testResult }}</p>
       <div v-for="category in categories" :key="category.name" class="category">
         <button @click="toggleCategory(category.name)" class="category-button">
@@ -487,5 +495,21 @@ const addProduct = async () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.loader {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
