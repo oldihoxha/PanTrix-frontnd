@@ -115,12 +115,16 @@ const isLoading = ref(false)
 const test = async () => {
   isLoading.value = true
   try {
-    const response = await axios.get('https://pantrix.onrender.com/test')
-    console.log('Backend-Werte:', response.data)
-    testResult.value = String(response.data)
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    const response = await axios.get(`${baseUrl}/products`)
+
+    console.log('Gespeicherte Produkte aus dem Backend:', response.data)
+
+    const count = Array.isArray(response.data) ? response.data.length : 0
+    testResult.value = `Es wurden ${count} Produkte aus dem Backend geladen.`
   } catch (error) {
-    console.error('Fehler beim Abrufen von /test:', error)
-    testResult.value = 'Fehler beim Laden von /test'
+    console.error('Fehler beim Abrufen der Produkte:', error)
+    testResult.value = 'Fehler beim Laden der Produkte'
   } finally {
     isLoading.value = false
   }
