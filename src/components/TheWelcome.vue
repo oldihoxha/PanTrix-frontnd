@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import WelcomeItem from './WelcomeItem.vue'
 import DocumentationIcon from './icons/IconDocumentation.vue'
-import { ref } from 'vue'
+
 
 interface Product {
   name: string
@@ -86,11 +86,43 @@ const categories = ref<Category[]>([
   }
 ])
 
-const expandedCategories = ref<Set<string>>(new Set())
+import axios from 'axios'
+import { onMounted, ref } from 'vue'
+
+
+const fetchedProducts = ref<Product[]>([])
+
+const loadThings = async () => {
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    const response = await axios.get(`${baseUrl}/products`)
+    console.log('products', response.data)
+
+    fetchedProducts.value = response.data
+
+
+  } catch (error) {
+    console.error('Fehler beim Laden der Produkte:', error)
+  }
+}
+
+onMounted(loadThings)
+
+const save = async () => {
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    await axios.post(`${baseUrl}/products`, fetchedProducts.value)
+    console.log('Produkte erfolgreich gespeichert.')
+  } catch (error) {
+    console.error('Fehler beim Speichern der Produkte:', error)
+  }
+}
+
+const expandedCategories = ref<Set<string>>(new Set());
 
 const showAddProductModal = ref(false)
-const selectedCategory = ref('')
-const newProductName = ref('')
+const selectedCategory = ref('');
+const newProductName = ref('');
 const newProductExpiryDate = ref('')
 const dateError = ref('')
 
@@ -125,7 +157,7 @@ const validateDate = (dateStr: string): boolean => {
 const addProduct = () => {
   dateError.value = ''
   if (!newProductName.value.trim()) {
-    // Optional: Name validieren, aber hier nur Datum
+
   }
   if (!validateDate(newProductExpiryDate.value)) {
     dateError.value = 'Bitte geben Sie ein gültiges Datum im Format TT.MM.JJJJ ein.'
@@ -144,6 +176,8 @@ const addProduct = () => {
       newProductExpiryDate.value = ''
       dateError.value = ''
       showAddProductModal.value = false
+
+      await save()
     }
   }
 }
