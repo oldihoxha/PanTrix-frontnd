@@ -94,7 +94,7 @@ const fetchedProducts = ref<Product[]>([])
 
 const loadThings = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
     const response = await axios.get(`${baseUrl}/products`)
     console.log('products', response.data)
 
