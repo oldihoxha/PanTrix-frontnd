@@ -115,7 +115,7 @@ const isLoading = ref(false)
 const test = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
     const response = await axios.get(`${baseUrl}/products`)
 
     console.log('Gespeicherte Produkte aus dem Backend:', response.data)
