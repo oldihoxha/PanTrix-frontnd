@@ -95,7 +95,7 @@ const fetchedProducts = ref<Product[]>([])
 const loadThings = async () => {
   try {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
-    const response = await axios.get(`${baseUrl}/products`)
+    const response = await axios.get(`${baseUrl}/test`)
     console.log('products', response.data)
 
     fetchedProducts.value = response.data
@@ -116,7 +116,7 @@ const test = async () => {
   isLoading.value = true
   try {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
-    const response = await axios.get(`${baseUrl}/products`)
+    const response = await axios.get(`${baseUrl}/test`)
 
     console.log('Gespeicherte Produkte aus dem Backend:', response.data)
 
@@ -132,8 +132,8 @@ const test = async () => {
 
 const save = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
-    await axios.post(`${baseUrl}/products`, fetchedProducts.value)
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
+    await axios.post(`${baseUrl}/test`, fetchedProducts.value)
     console.log('Produkte erfolgreich gespeichert.')
   } catch (error) {
     console.error('Fehler beim Speichern der Produkte:', error)
