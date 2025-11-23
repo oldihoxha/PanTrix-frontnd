@@ -90,10 +90,10 @@ const categories = ref<Category[]>([
 
 const fetchedProducts = ref<Product[]>([])
 
-// Gemeinsame Basis-URL für Backend
+
 const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 
-// Lädt Produkte beim Mount (optional, falls du sie irgendwo verwenden willst)
+
 const loadThings = async () => {
   try {
     const response = await axios.get(`${baseUrl}/test`)
@@ -109,14 +109,14 @@ onMounted(loadThings)
 const testResult = ref<string>('')
 const isLoading = ref(false)
 
-// Test-Methode: holt Produkte von /test und gibt sie in der Konsole aus
+
 const test = async () => {
   isLoading.value = true
   testResult.value = ''
   try {
     const response = await axios.get(`${baseUrl}/test`)
 
-    // Genau hier werden die Werte aus dem Backend in die Browser-Konsole geschrieben
+
     console.log('Gespeicherte Produkte aus dem Backend (Test-Button):', response.data)
 
     fetchedProducts.value = response.data
@@ -210,14 +210,14 @@ const addProduct = async () => {
     <template #heading>Kategorien und Produkte</template>
 
     <div class="categories">
-      <!-- Test-Button: ruft test() auf, die die Produkte in der Konsole loggt -->
+
       <button class="test-button" @click="test" :disabled="isLoading">
         <span v-if="isLoading" class="loader"></span>
         <span v-else>Test (Backend laden)</span>
       </button>
       <p v-if="testResult">{{ testResult }}</p>
 
-      <!-- Optional: als Kontrolle auch im UI anzeigen, was vom Backend kam -->
+
       <div v-if="fetchedProducts.length" class="fetched-products">
         <h4>Produkte aus dem Backend (Test):</h4>
         <ul>
