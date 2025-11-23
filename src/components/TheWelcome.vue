@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import WelcomeItem from './WelcomeItem.vue'
 import DocumentationIcon from './icons/IconDocumentation.vue'
+import axios from 'axios'
+import { onMounted, ref } from 'vue'
 
 
 interface Product {
@@ -86,21 +88,17 @@ const categories = ref<Category[]>([
   }
 ])
 
-import axios from 'axios'
-import { onMounted, ref } from 'vue'
-
-
 const fetchedProducts = ref<Product[]>([])
 
+// Gemeinsame Basis-URL für Backend
+const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
+
+// Lädt Produkte beim Mount (optional, falls du sie irgendwo verwenden willst)
 const loadThings = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
     const response = await axios.get(`${baseUrl}/test`)
-    console.log('products', response.data)
-
+    console.log('Produkte beim Laden (onMounted):', response.data)
     fetchedProducts.value = response.data
-
-
   } catch (error) {
     console.error('Fehler beim Laden der Produkte:', error)
   }
@@ -109,34 +107,26 @@ const loadThings = async () => {
 onMounted(loadThings)
 
 const testResult = ref<string>('')
-
 const isLoading = ref(false)
 
+// Test-Methode: holt Produkte von /test und gibt sie in der Konsole aus
 const test = async () => {
   isLoading.value = true
+  testResult.value = ''
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
     const response = await axios.get(`${baseUrl}/test`)
 
-    console.log('Gespeicherte Produkte aus dem Backend:', response.data)
+    // Genau hier werden die Werte aus dem Backend in die Browser-Konsole geschrieben
+    console.log('Gespeicherte Produkte aus dem Backend (Test-Button):', response.data)
 
+    fetchedProducts.value = response.data
     const count = Array.isArray(response.data) ? response.data.length : 0
-    testResult.value = `Es wurden ${count} Produkte aus dem Backend geladen.`
+    testResult.value = `Es wurden ${count} Produkte aus dem Backend geladen. (siehe Konsole)`
   } catch (error) {
-    console.error('Fehler beim Abrufen der Produkte:', error)
-    testResult.value = 'Fehler beim Laden der Produkte'
+    console.error('Fehler beim Abrufen der Produkte (Test-Button):', error)
+    testResult.value = 'Fehler beim Laden der Produkte (Details in der Konsole)'
   } finally {
     isLoading.value = false
-  }
-}
-
-const save = async () => {
-  try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
-    await axios.post(`${baseUrl}/test`, fetchedProducts.value)
-    console.log('Produkte erfolgreich gespeichert.')
-  } catch (error) {
-    console.error('Fehler beim Speichern der Produkte:', error)
   }
 }
 
@@ -220,11 +210,23 @@ const addProduct = async () => {
     <template #heading>Kategorien und Produkte</template>
 
     <div class="categories">
+      <!-- Test-Button: ruft test() auf, die die Produkte in der Konsole loggt -->
       <button class="test-button" @click="test" :disabled="isLoading">
         <span v-if="isLoading" class="loader"></span>
-        <span v-else>Test</span>
+        <span v-else>Test (Backend laden)</span>
       </button>
-      <p v-if="testResult">Test\-Ergebnis: {{ testResult }}</p>
+      <p v-if="testResult">{{ testResult }}</p>
+
+      <!-- Optional: als Kontrolle auch im UI anzeigen, was vom Backend kam -->
+      <div v-if="fetchedProducts.length" class="fetched-products">
+        <h4>Produkte aus dem Backend (Test):</h4>
+        <ul>
+          <li v-for="(p, i) in fetchedProducts" :key="i">
+            {{ p.name }} – Ablaufdatum: {{ p.expiryDate }}
+          </li>
+        </ul>
+      </div>
+
       <div v-for="category in categories" :key="category.name" class="category">
         <button @click="toggleCategory(category.name)" class="category-button">
           {{ category.name }}
@@ -515,5 +517,22 @@ const addProduct = async () => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.fetched-products {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #222;
+}
+
+.fetched-products h4 {
+  margin: 0 0 0.5rem 0;
+}
+
+.fetched-products ul {
+  margin: 0;
+  padding-left: 1.2rem;
 }
 </style>
