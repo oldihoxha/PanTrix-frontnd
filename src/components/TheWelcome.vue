@@ -185,6 +185,17 @@ const addProduct = async () => {
     return
   }
   if (newProductName.value.trim() && newProductExpiryDate.value.trim()) {
+    try{
+      const response = await axios.post(`${baseUrl}/test`, {
+        name: newProductName.value.trim(),
+        expiryDate: newProductExpiryDate.value.trim(),
+        category: selectedCategory.value
+      })
+      console.log('Produkt erfolgreich zum Backend hinzugefügt:', response.data)
+      await loadThings()
+    } catch (error) {
+      console.error('Fehler beim Hinzufügen des Produkts zum Backend:', error)
+    }
     const category = categories.value.find(cat => cat.name === selectedCategory.value)
     if (category) {
       category.products.push({
