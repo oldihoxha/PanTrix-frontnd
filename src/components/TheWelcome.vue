@@ -6,7 +6,7 @@ const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 const products = ref<any[]>([])
 const isLoading = ref(false)
 
-// GET Request - Produkte laden
+
 const loadProducts = async () => {
   isLoading.value = true
   try {
@@ -20,10 +20,10 @@ const loadProducts = async () => {
   }
 }
 
-// POST Request - Neues Produkt hinzufügen
+
 const addProduct = async (name: string, expiryDate: string) => {
   try {
-    const response = await axios.post(`${baseUrl}/products`, {
+    const response = await axios.post(`${baseUrl}/test`, {
       name: name,
       expiryDate: expiryDate
     })
