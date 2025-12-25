@@ -214,24 +214,24 @@ const addProduct = async () => {
       <button class="test-button" @click="test" :disabled="isLoading">
         <span v-if="isLoading" class="loader"></span>
         <span v-else>Test (Backend laden)</span>
-      </button>
+      </button> viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'arrow-rotated': expandedCategories.has(category.name) }" class="arrow">
+            <path d="M7 10l5 5 5-5z
       <p v-if="testResult">{{ testResult }}</p>
 
 
-      <div v-if="fetchedProducts.length" class="fetched-products">
-        <h4>Produkte aus dem Backend (Test):</h4>
-        <ul>
-          <li v-for="(p, i) in fetchedProducts" :key="i">
-            {{ p.name }} – Ablaufdatum: {{ p.expiryDate }}
-          </li>
-        </ul>
-      </div>
+            <div v-if="fetchedProducts.length" class="fetched-products">
+              <h4>Produkte aus dem Backend (Test):</h4>
+              <ul>
+                <li v-for="(p, i) in fetchedProducts" :key="i">
+                  {{ p.name }} – Ablaufdatum: {{ p.expiryDate }}
+                </li>
+              </ul>
+            </div>
 
-      <div v-for="category in categories" :key="category.name" class="category">
-        <button @click="toggleCategory(category.name)" class="category-button">
-          {{ category.name }}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'arrow-rotated': expandedCategories.has(category.name) }" class="arrow">
-            <path d="M7 10l5 5 5-5z" fill="#fff"/>
+            <div v-for="category in categories" :key="category.name" class="category">
+              <button @click="toggleCategory(category.name)" class="category-button">
+                {{ category.name }}
+                <svg width="20" height="20"" fill="#fff"/>
           </svg>
         </button>
         <Transition name="slide">
@@ -281,10 +281,9 @@ const addProduct = async () => {
 
 <style scoped>
 .categories {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: white;
   padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -296,9 +295,9 @@ const addProduct = async () => {
 .category-button {
   width: 100%;
   padding: 0.75rem;
-  background: #2196f3;
-  border: none;
-  border-radius: 8px;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 1.1rem;
   font-weight: 600;
@@ -306,13 +305,7 @@ const addProduct = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
-  transition: background-color 0.3s, transform 0.2s;
-}
-
-.category-button:hover {
-  background: #1976d2;
-  transform: translateY(-2px);
+  color: black;
 }
 
 .arrow {
@@ -331,18 +324,11 @@ const addProduct = async () => {
 }
 
 .product-card {
-  border-radius: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-  color: white;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-  animation: fadeInUp 0.5s ease-out forwards;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  background: white;
+  color: black;
 }
 
 .product-icon {
@@ -365,21 +351,15 @@ const addProduct = async () => {
 .add-button {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #2196f3;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  background: #f0f0f0;
+  color: black;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: background-color 0.3s, transform 0.2s;
-}
-
-.add-button:hover {
-  background: #1976d2;
-  transform: translateY(-2px);
 }
 
 .modal-overlay {
@@ -388,7 +368,7 @@ const addProduct = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -398,8 +378,8 @@ const addProduct = async () => {
 .modal {
   background: white;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid #ccc;
   width: 90%;
   max-width: 400px;
 }
@@ -408,21 +388,21 @@ const addProduct = async () => {
   margin: 0 0 1rem 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
+  color: black;
 }
 
 .modal label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: black;
 }
 
 .modal input {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  border-radius: 4px;
   margin-bottom: 1rem;
 }
 
@@ -434,29 +414,12 @@ const addProduct = async () => {
 
 .modal-actions button {
   padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.3s, transform 0.2s;
-}
-
-.modal-actions button:first-child {
-  background: #4caf50;
-  color: white;
-}
-
-.modal-actions button:first-child:hover {
-  background: #43a047;
-}
-
-.modal-actions button:last-child {
-  background: #f44336;
-  color: white;
-}
-
-.modal-actions button:last-child:hover {
-  background: #e53935;
+  background: #f0f0f0;
+  color: black;
 }
 
 .error {
@@ -492,20 +455,20 @@ const addProduct = async () => {
   transform: scale(0.9);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.test-button {
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  background: #f0f0f0;
+  color: black;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
 }
 
 .loader {
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
+  border: 2px solid #ccc;
+  border-top: 2px solid black;
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -522,9 +485,10 @@ const addProduct = async () => {
 .fetched-products {
   margin: 1rem 0;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  color: #222;
+  border-radius: 4px;
+  background: #f9f9f9;
+  border: 1px solid #ccc;
+  color: black;
 }
 
 .fetched-products h4 {
