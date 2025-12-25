@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import TheWelcome from './components/TheWelcome.vue'
 </script>
 
 <template>
-  <RouterView />
+  <TheWelcome />
 </template>
 
 <style>
-body {
-  background: white !important;
-  color: black !important;
+* {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
-/* Hier kannst du globale Styles hinzufügen, wenn nötig */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
 </style>
