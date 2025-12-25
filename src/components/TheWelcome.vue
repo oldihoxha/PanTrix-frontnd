@@ -203,32 +203,330 @@ const addProduct = async () => {
 </script>
 
 <template>
-  <div class="blank-page">
-    <h1>Blank Page</h1>
-    <p>Diese Seite ist leer, damit wir gemeinsam gestalten können.</p>
-  </div>
+  <WelcomeItem>
+    <template #icon>
+      <DocumentationIcon />
+    </template>
+    <template #heading>Kategorien und Produkte</template>
+
+    <div class="categories">
+
+      <button class="test-button" @click="test" :disabled="isLoading">
+        <span v-if="isLoading" class="loader"></span>
+        <span v-else>Test (Backend laden)</span>
+      </button>
+      <p v-if="testResult">{{ testResult }}</p>
+
+      <div v-if="fetchedProducts.length" class="fetched-products">
+        <h4>Produkte aus dem Backend (Test):</h4>
+        <ul>
+          <li v-for="(p, i) in fetchedProducts" :key="i">
+            {{ p.name }} – Ablaufdatum: {{ p.expiryDate }}
+          </li>
+        </ul>
+      </div>
+
+      <div v-for="category in categories" :key="category.name" class="category">
+        <button @click="toggleCategory(category.name)" class="category-button">
+          {{ category.name }}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'arrow-rotated': expandedCategories.has(category.name) }" class="arrow">
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </button>
+        <Transition name="slide">
+          <div v-if="expandedCategories.has(category.name)" class="products">
+            <div v-for="(product, index) in category.products" :key="index" class="product-card" :style="{ background: product.background, animationDelay: `${index * 0.1}s` }">
+              <div class="product-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" v-html="product.icon"></svg>
+              </div>
+              <h4>{{ product.name }}</h4>
+              <p>Ablaufdatum: {{ product.expiryDate }}</p>
+            </div>
+          </div>
+        </Transition>
+        <Transition name="fade">
+          <button v-if="expandedCategories.has(category.name)" @click="openAddProductModal(category.name)" class="add-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="white"/>
+            </svg>
+            Produkt hinzufügen
+          </button>
+        </Transition>
+      </div>
+    </div>
+
+    <Transition name="modal">
+      <div v-if="showAddProductModal" class="modal-overlay">
+        <div class="modal">
+          <h3>Neues Produkt hinzufügen</h3>
+          <label>
+            Produktname:
+            <input type="text" v-model="newProductName" />
+          </label>
+          <label>
+            Ablaufdatum:
+            <input type="text" v-model="newProductExpiryDate" />
+          </label>
+          <p v-if="dateError" class="error">{{ dateError }}</p>
+          <div class="modal-actions">
+            <button @click="addProduct">Hinzufügen</button>
+            <button @click="showAddProductModal = false">Abbrechen</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </WelcomeItem>
 </template>
 
 <style scoped>
-.blank-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background-color: #f9f9f9;
-  color: #333;
-  text-align: center;
+.categories {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
-.blank-page h1 {
-  font-size: 2.5rem;
+.category {
   margin-bottom: 1rem;
 }
 
-.blank-page p {
-  font-size: 1.2rem;
-  max-width: 600px;
-  margin: 0 auto;
+.category-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #2196f3;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.category-button:hover {
+  background: #1976d2;
+  transform: translateY(-2px);
+}
+
+.arrow {
+  transition: transform 0.2s;
+}
+
+.arrow-rotated {
+  transform: rotate(180deg);
+}
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.product-card {
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.product-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.product-card h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.product-card p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.add-button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.add-button:hover {
+  background: #1976d2;
+  transform: translateY(-2px);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.modal input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.modal-actions button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  background: #f0f0f0;
+  color: #333;
+}
+
+.error {
+  color: red;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+}
+
+.slide-enter-active, .slide-leave-active {
+  transition: max-height 0.5s ease-in-out, opacity 0.5s ease;
+}
+
+.slide-enter, .slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active, .modal-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.modal-enter, .modal-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.test-button {
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.loader {
+  border: 2px solid #ccc;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fetched-products {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.fetched-products h4 {
+  margin: 0 0 0.5rem 0;
+}
+
+.fetched-products ul {
+  margin: 0;
+  padding-left: 1.2rem;
 }
 </style>
