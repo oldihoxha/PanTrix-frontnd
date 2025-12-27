@@ -16,7 +16,7 @@ const errorMessage = ref('')
 
 // Physik-Engine für Sphären
 interface Sphere {
-  element: HTMLElement | null
+  element: HTMLElement
   x: number
   y: number
   vx: number
@@ -48,8 +48,6 @@ const updatePhysics = () => {
 
   // Update positions und check boundaries
   spheres.value.forEach((sphere, idx) => {
-    if (!sphere.element) return
-
     // Keine Schwerkraft - konstante Bewegung in zufällige Richtungen
     // Die Velocities bleiben erhalten, bis zur Collision oder Boundary
 
@@ -77,8 +75,8 @@ const updatePhysics = () => {
     }
 
     // Apply position
-    sphere.element!.style.left = sphere.x - sphere.radius + 'px'
-    sphere.element!.style.top = sphere.y - sphere.radius + 'px'
+    sphere.element.style.left = sphere.x - sphere.radius + 'px'
+    sphere.element.style.top = sphere.y - sphere.radius + 'px'
   })
 
   // Sphere-to-sphere collision (gegenseitige Abstoßung - echte Physik)
