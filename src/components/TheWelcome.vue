@@ -1128,14 +1128,233 @@ onUnmounted(() => {
 /* ENTFERNT */
 
 @media (max-width: 768px) {
-  .glass-container {
-    min-width: 90%;
-    padding: 3rem 2rem;
+  /* Landing Page */
+  .landing-page {
+    padding-top: 60px;
   }
 
+  .top-bar {
+    padding: 1rem 1.5rem;
+  }
+
+  .logo-text {
+    font-size: 1.2rem !important;
+  }
+
+  .nav-links {
+    gap: 0.5rem;
+  }
+
+  .nav-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* Glass Container */
+  .glass-container {
+    min-width: 90%;
+    max-width: 95%;
+    padding: 2rem 1.5rem;
+    border-radius: 30px;
+  }
+
+  /* Hero Text */
   .landing-page h1 {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     letter-spacing: 1px;
+    margin-bottom: 1rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    letter-spacing: 0.8px;
+    margin-bottom: 0.8rem;
+  }
+
+  .hero-tagline {
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  /* Button */
+  .btn-login {
+    padding: 0.9rem 2rem;
+    font-size: 0.95rem;
+    margin-top: 1.5rem;
+  }
+
+  /* Sections */
+  .section {
+    padding: 2rem 1rem;
+  }
+
+  .hero-section {
+    padding-top: 60px;
+  }
+
+  .features-section {
+    padding: 3rem 1rem;
+  }
+
+  .how-it-works-section {
+    padding: 3rem 1rem;
+  }
+
+  /* Section Content */
+  .section-content h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    letter-spacing: 1px;
+  }
+
+  /* Features Grid */
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem 1rem;
+    min-height: auto;
+    border-radius: 12px;
+  }
+
+  .feature-icon {
+    font-size: 2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .feature-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .feature-card p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  /* Steps */
+  .steps-container {
+    gap: 1rem;
+  }
+
+  .step {
+    padding: 1.5rem 1rem;
+    min-width: auto;
+  }
+
+  .step-number {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .step h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .step p {
+    font-size: 0.8rem;
+  }
+
+  .step-arrow {
+    font-size: 1.5rem;
+    margin: 0 0.5rem;
+  }
+
+  /* Upcoming Feature */
+  .upcoming-feature {
+    padding: 1.2rem 1rem;
+    margin-top: 2rem;
+    font-size: 0.85rem;
+  }
+
+  .upcoming-feature p {
+    font-size: 0.85rem;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 2rem 1rem 1rem;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .footer-section h4 {
+    font-size: 1rem;
+  }
+
+  .footer-section p,
+  .footer-section a,
+  .footer-bottom p {
+    font-size: 0.8rem;
+  }
+
+  /* Auth Modal */
+  .auth-modal-flip-container {
+    width: 95%;
+    max-width: 100%;
+  }
+
+  .auth-modal-front.glass,
+  .auth-modal-back.glass {
+    padding: 2rem 1.5rem;
+    border-radius: 25px;
+  }
+
+  .auth-form h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .input-field {
+    padding: 0.8rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .btn-submit {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .auth-toggle {
+    font-size: 0.75rem;
+  }
+
+  .btn-close {
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  /* Sphären - kleinere Sphären für Handy */
+  .sphere {
+    display: none;
   }
 }
 
