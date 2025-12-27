@@ -30,7 +30,16 @@ let animationFrameId: number | null = null
 
 const initSpheres = () => {
   const sphereElements = Array.from(document.querySelectorAll('.sphere')) as HTMLElement[]
-  const sizes = [350, 280, 320, 300, 320] as const
+
+  // Responsive Größen basierend auf Viewport
+  let sizes: readonly number[]
+  if (window.innerWidth <= 768) {
+    // Mobile Größen
+    sizes = [120, 90, 110, 100, 110] as const
+  } else {
+    // Desktop/Tablet Größen
+    sizes = [350, 280, 320, 300, 320] as const
+  }
   const newSpheres: Sphere[] = []
 
   for (let idx = 0; idx < sphereElements.length; idx++) {
@@ -591,6 +600,7 @@ onUnmounted(() => {
   overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  background: #000000;
 }
 
 .scroll-container::-webkit-scrollbar {
@@ -1353,8 +1363,29 @@ onUnmounted(() => {
   }
 
   /* Sphären - kleinere Sphären für Handy */
-  .sphere {
-    display: none;
+  .sphere1 {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .sphere2 {
+    width: 90px !important;
+    height: 90px !important;
+  }
+
+  .sphere3 {
+    width: 110px !important;
+    height: 110px !important;
+  }
+
+  .sphere4 {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .sphere5 {
+    width: 110px !important;
+    height: 110px !important;
   }
 }
 
