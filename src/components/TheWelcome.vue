@@ -1,11 +1,158 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 const products = ref<any[]>([])
 const isLoading = ref(false)
 
+// Login/Registrierungs-States
+const showAuthModal = ref(false)
+const isLoginMode = ref(true)
+const email = ref('')
+const password = ref('')
+const passwordConfirm = ref('')
+const errorMessage = ref('')
+
+// Physik-Engine für Sphären
+interface Sphere {
+  element: HTMLElement | null
+  x: number
+  y: number
+  vx: number
+  vy: number
+  radius: number
+  mass: number
+}
+
+const spheres = ref<Sphere[]>([])
+let animationFrameId: number | null = null
+
+const initSpheres = () => {
+  const sphereElements = document.querySelectorAll('.sphere')
+  const sizes = [350, 280, 320, 300, 320]
+
+  spheres.value = Array.from(sphereElements).map((el, idx) => ({
+    element: el as HTMLElement,
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    vx: (Math.random() - 0.5) * 2,
+    vy: (Math.random() - 0.5) * 2,
+    radius: sizes[idx] / 2,
+    mass: 1
+  }))
+}
+
+const updatePhysics = () => {
+  const padding = 50
+
+  // Update positions und check boundaries
+  spheres.value.forEach((sphere, idx) => {
+    if (!sphere.element) return
+
+    // Keine Schwerkraft - konstante Bewegung in zufällige Richtungen
+    // Die Velocities bleiben erhalten, bis zur Collision oder Boundary
+
+    // Position update
+    sphere.x += sphere.vx
+    sphere.y += sphere.vy
+
+    // Boundary collision (Wände) - sanfter Bounce
+    // Nutze window.innerHeight für aktuelle Viewport-Höhe, nicht Scroll-Höhe
+    if (sphere.x - sphere.radius < padding) {
+      sphere.x = padding + sphere.radius
+      sphere.vx *= -1
+    }
+    if (sphere.x + sphere.radius > window.innerWidth - padding) {
+      sphere.x = window.innerWidth - padding - sphere.radius
+      sphere.vx *= -1
+    }
+    if (sphere.y - sphere.radius < 0) { // Top boundary
+      sphere.y = sphere.radius
+      sphere.vy *= -1
+    }
+    if (sphere.y + sphere.radius > window.innerHeight) {
+      sphere.y = window.innerHeight - sphere.radius
+      sphere.vy *= -1
+    }
+
+    // Apply position
+    sphere.element.style.left = sphere.x - sphere.radius + 'px'
+    sphere.element.style.top = sphere.y - sphere.radius + 'px'
+  })
+
+  // Sphere-to-sphere collision (gegenseitige Abstoßung - echte Physik)
+  for (let i = 0; i < spheres.value.length; i++) {
+    for (let j = i + 1; j < spheres.value.length; j++) {
+      const s1 = spheres.value[i]
+      const s2 = spheres.value[j]
+
+      const dx = s2.x - s1.x
+      const dy = s2.y - s1.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      const minDistance = s1.radius + s2.radius + 5
+
+      if (distance < minDistance && distance > 0) {
+        // Normalize direction
+        const nx = dx / distance
+        const ny = dy / distance
+
+        // 1. Separation - verhindert Überlappung
+        const overlap = minDistance - distance
+        const separationForce = overlap * 0.7
+        s1.x -= nx * separationForce
+        s1.y -= ny * separationForce
+        s2.x += nx * separationForce
+        s2.y += ny * separationForce
+
+        // 2. Elastische Kollision - Geschwindigkeiten austauschen
+        // Relative Geschwindigkeit
+        const dvx = s2.vx - s1.vx
+        const dvy = s2.vy - s1.vy
+
+        // Relative Geschwindigkeit in Kollisionsrichtung
+        const dotProduct = dvx * nx + dvy * ny
+
+        // Nur wenn sie sich aufeinander zu bewegen
+        if (dotProduct < 0) {
+          // Für gleiche Massen: Velocities tauschen sich aus
+          // Coefficient of restitution = 1 (perfekt elastisch)
+          const restitution = 1.0
+
+          // Impulse berechnen
+          const impulse = -(1 + restitution) * dotProduct / 2
+
+          // Velocities anpassen
+          s1.vx -= impulse * nx
+          s1.vy -= impulse * ny
+          s2.vx += impulse * nx
+          s2.vy += impulse * ny
+        }
+      }
+    }
+  }
+
+  animationFrameId = requestAnimationFrame(updatePhysics)
+}
+
+const startPhysicsEngine = () => {
+  initSpheres()
+
+  // Mache die Sphären sichtbar nach kurzer Verzögerung
+  setTimeout(() => {
+    document.querySelectorAll('.sphere').forEach((el) => {
+      el.classList.add('loaded')
+    })
+  }, 50)
+
+  updatePhysics()
+}
+
+const stopPhysicsEngine = () => {
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId)
+  }
+}
 
 const loadProducts = async () => {
   isLoading.value = true
@@ -20,7 +167,6 @@ const loadProducts = async () => {
   }
 }
 
-
 const addProduct = async (name: string, expiryDate: string) => {
   try {
     const response = await axios.post(`${baseUrl}/test`, {
@@ -34,17 +180,305 @@ const addProduct = async (name: string, expiryDate: string) => {
   }
 }
 
+// Auth Modal Funktionen
+const openAuthModal = () => {
+  showAuthModal.value = true
+  isLoginMode.value = true
+  email.value = ''
+  password.value = ''
+  passwordConfirm.value = ''
+  errorMessage.value = ''
+}
+
+const closeAuthModal = () => {
+  showAuthModal.value = false
+  email.value = ''
+  password.value = ''
+  passwordConfirm.value = ''
+  errorMessage.value = ''
+}
+
+const toggleMode = () => {
+  isLoginMode.value = !isLoginMode.value
+  errorMessage.value = ''
+  passwordConfirm.value = ''
+}
+
+const handleLogin = () => {
+  errorMessage.value = ''
+
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Bitte füllen Sie alle Felder aus'
+    return
+  }
+
+  if (!email.value.includes('@')) {
+    errorMessage.value = 'Bitte geben Sie eine gültige E-Mail ein'
+    return
+  }
+
+  console.log('Login:', email.value, password.value)
+  // Hier später Backend-Integration
+  closeAuthModal()
+}
+
+const handleRegister = () => {
+  errorMessage.value = ''
+
+  if (!email.value || !password.value || !passwordConfirm.value) {
+    errorMessage.value = 'Bitte füllen Sie alle Felder aus'
+    return
+  }
+
+  if (!email.value.includes('@')) {
+    errorMessage.value = 'Bitte geben Sie eine gültige E-Mail ein'
+    return
+  }
+
+  if (password.value.length < 6) {
+    errorMessage.value = 'Passwort muss mindestens 6 Zeichen lang sein'
+    return
+  }
+
+  if (password.value !== passwordConfirm.value) {
+    errorMessage.value = 'Passwörter stimmen nciht überein'
+    return
+  }
+
+  console.log('Register:', email.value, password.value)
+  // Hier später Backend-Integration
+  closeAuthModal()
+}
+
 onMounted(() => {
   loadProducts()
+  startPhysicsEngine()
+})
+
+onUnmounted(() => {
+  stopPhysicsEngine()
 })
 </script>
 
 <template>
   <div class="landing-page">
-    <div class="glass-container">
-      <h1>Willkommen zu PanTrix</h1>
-      <button class="btn-login">Jetzt anmelden</button>
+    <!-- Top Bar / Header -->
+    <header class="top-bar">
+      <div class="logo-container">
+        <div class="logo">
+          <span class="logo-text">PanTrix</span>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <button class="nav-button">Über uns</button>
+        <button class="nav-button">Features</button>
+        <button class="nav-button" @click="openAuthModal" style="margin-left: auto;">Anmelden</button>
+      </nav>
+    </header>
+
+    <!-- Scrollable Container -->
+    <div class="scroll-container">
+      <!-- Hero Section -->
+      <section class="section hero-section">
+        <!-- Schwebende Sphären -->
+        <div class="sphere sphere1"></div>
+        <div class="sphere sphere2"></div>
+        <div class="sphere sphere3"></div>
+        <div class="sphere sphere4"></div>
+        <div class="sphere sphere5"></div>
+
+        <!-- Glass Container -->
+        <div class="glass-container">
+          <h1>Willkommen zu PanTrix</h1>
+          <p class="hero-subtitle">Dein intelligenter Lebensmittel-Tracker</p>
+          <p class="hero-tagline">Spare Geld, schütze die Umwelt, verschwende nichts mehr</p>
+          <button class="btn-login" @click="openAuthModal">Jetzt anmelden</button>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section class="section features-section">
+        <div class="section-content">
+          <h2>Warum PanTrix?</h2>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">🔔</div>
+              <h3>Intelligente Benachrichtigungen</h3>
+              <p>Werde rechtzeitig benachrichtigt, bevor Lebensmittel ablaufen und verschwenden nicht mehr!</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">🍳</div>
+              <h3>Rezept-Vorschläge</h3>
+              <p>Erhalte personalisierte Rezepte für Frühstück, Mittagessen und Abendessen basierend auf deinen Lebensmitteln</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">🌍</div>
+              <h3>Umwelt sparen</h3>
+              <p>Reduziere Lebensmittelverschwendung und trage zu einer nachhaltigen Zukunft bei</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">💰</div>
+              <h3>Geld sparen</h3>
+              <p>Nutze deine Lebensmittel optimal und spare Geld beim Einkaufen</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works Section -->
+      <section class="section how-it-works-section">
+        <div class="section-content">
+          <h2>So funktioniert's</h2>
+          <div class="steps-container">
+            <div class="step">
+              <div class="step-number">1</div>
+              <h3>Hinzufügen</h3>
+              <p>Scanne oder gib deine Lebensmittel mit Ablaufdatum ein</p>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <h3>Benachrichtigungen</h3>
+              <p>Erhalte Warnungen, bevor Lebensmittel ablaufen</p>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <h3>Verwalten</h3>
+              <p>Behalte den Überblick über deine Lebensmittel</p>
+            </div>
+          </div>
+          <div class="upcoming-feature">
+            <p>🔜 <strong>Bald verfügbar:</strong> Intelligente Rezept-Vorschläge basierend auf deinen Lebensmitteln</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="footer-section">
+            <h4>PanTrix</h4>
+            <p>Dein intelligenter Lebensmittel-Tracker</p>
+          </div>
+          <div class="footer-section">
+            <h4>Links</h4>
+            <ul>
+              <li><a href="#home">Home</a></li>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#about">Über uns</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h4>Rechtliches</h4>
+            <ul>
+              <li><a href="#privacy">Datenschutz</a></li>
+              <li><a href="#terms">Nutzungsbedingungen</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2025 PanTrix. Alle Rechte vorbehalten.</p>
+        </div>
+      </footer>
     </div>
+
+    <!-- Auth Modal -->
+    <Transition name="modal-fade">
+      <div v-if="showAuthModal" class="modal-overlay" @click.self="closeAuthModal">
+        <div class="auth-modal-flip-container">
+          <div class="auth-modal-flipper" :class="{ flipped: !isLoginMode }">
+            <!-- Login Side -->
+            <div class="auth-modal-front glass">
+              <div class="auth-form">
+                <h2>Anmelden</h2>
+                <p class="auth-subtitle">Willkommen zurück!</p>
+
+                <div class="form-group">
+                  <label>E-Mail</label>
+                  <input
+                    v-model="email"
+                    type="email"
+                    placeholder="deine@email.com"
+                    class="input-field"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Passwort</label>
+                  <input
+                    v-model="password"
+                    type="password"
+                    placeholder="••••••••"
+                    class="input-field"
+                    @keyup.enter="handleLogin"
+                  />
+                </div>
+
+                <div v-if="errorMessage && isLoginMode" class="error-message">{{ errorMessage }}</div>
+
+                <button @click="handleLogin" class="btn-submit">Anmelden</button>
+
+                <p class="auth-toggle">
+                  Noch kein Konto?
+                  <button @click="toggleMode" class="toggle-link">Registrieren</button>
+                </p>
+              </div>
+            </div>
+
+            <!-- Register Side -->
+            <div class="auth-modal-back glass">
+              <div class="auth-form">
+                <h2>Registrieren</h2>
+                <p class="auth-subtitle">Erstelle dein Konto</p>
+
+                <div class="form-group">
+                  <label>E-Mail</label>
+                  <input
+                    v-model="email"
+                    type="email"
+                    placeholder="deine@email.com"
+                    class="input-field"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Passwort</label>
+                  <input
+                    v-model="password"
+                    type="password"
+                    placeholder="••••••••"
+                    class="input-field"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Passwort bestätigen</label>
+                  <input
+                    v-model="passwordConfirm"
+                    type="password"
+                    placeholder="••••••••"
+                    class="input-field"
+                    @keyup.enter="handleRegister"
+                  />
+                </div>
+
+                <div v-if="errorMessage && !isLoginMode" class="error-message">{{ errorMessage }}</div>
+
+                <button @click="handleRegister" class="btn-submit">Registrieren</button>
+
+                <p class="auth-toggle">
+                  Du hast schon ein Konto?
+                  <button @click="toggleMode" class="toggle-link">Anmelden</button>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <button @click="closeAuthModal" class="btn-close" :class="{ flipped: !isLoginMode }">✕</button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -56,60 +490,493 @@ onMounted(() => {
 }
 
 .landing-page {
-  background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1e 50%, #0a0a15 100%);
-  background-attachment: fixed;
+  background: #000000;
   width: 100%;
   height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
   overflow: hidden;
 }
 
-.landing-page::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -10%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(100, 200, 255, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(60px);
-  animation: float 8s ease-in-out infinite;
+/* Top Bar / Header */
+.top-bar {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
-.landing-page::after {
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: translateY(-2px);
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  letter-spacing: 0.3px;
+}
+
+.nav-button:hover {
+  color: #ffffff;
+  background: rgba(42, 42, 42, 0.11);
+}
+
+/* Scroll Container */
+.scroll-container {
+  flex: 1;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Section Styles */
+.section {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  position: relative;
+  margin-top: 0;
+}
+
+.hero-section {
+  background: #000000;
+  padding-top: 100px;
+}
+
+.features-section {
+  background: #000000;
+  padding: 6rem 2rem;
+}
+
+.how-it-works-section {
+  background: #000000;
+  padding: 6rem 2rem;
+}
+
+.section-content {
+  max-width: 1200px;
+  width: 100%;
+}
+
+.section-content h2 {
+  font-size: 3.5rem;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.feature-card::before {
   content: '';
   position: absolute;
-  bottom: -20%;
-  left: -5%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(150, 100, 255, 0.12) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(60px);
-  animation: float 10s ease-in-out infinite reverse;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1.2rem;
+  display: block;
+}
+
+.feature-card h3 {
+  font-size: 1.1rem;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.feature-card p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* Steps Container */
+.steps-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 3rem;
+}
+
+.step {
+  flex: 1;
+  min-width: 250px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.step:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-5px);
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, rgba(173, 216, 255, 0.3), rgba(255, 105, 180, 0.3));
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0 auto 1.5rem;
+}
+
+.step h3 {
+  font-size: 1.3rem;
+  color: #ffffff;
+  margin-bottom: 0.8rem;
+  font-weight: 700;
+}
+
+.step p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+}
+
+.step-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 2rem;
+  font-weight: bold;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .step-arrow {
+    display: block;
+  }
+}
+
+/* Upcoming Feature Box */
+.upcoming-feature {
+  margin-top: 3rem;
+  padding: 1.5rem 2rem;
+  background: rgba(144, 238, 144, 0.05);
+  border: 1px solid rgba(144, 238, 144, 0.3);
+  border-radius: 15px;
+  text-align: center;
+  color: rgba(144, 238, 144, 0.9);
+  font-size: 0.95rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.upcoming-feature:hover {
+  background: rgba(144, 238, 144, 0.08);
+  border-color: rgba(144, 238, 144, 0.5);
+  transform: translateY(-2px);
+}
+
+.upcoming-feature p {
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Footer */
+.footer {
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3rem 2rem 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+}
+
+.footer-section h4 {
+  color: #ffffff;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.footer-section p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-section li {
+  margin-bottom: 0.5rem;
+}
+
+.footer-section a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.footer-section a:hover {
+  color: #ffffff;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.landing-page {
+  background: #000000;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Schwebende Sphären */
+.sphere {
+  position: fixed;
+  border-radius: 50%;
+  box-shadow:
+    /* Hauptschatten */
+    0 30px 80px rgba(0, 0, 0, 0.9),
+    /* Innere Highlights */
+    inset -20px -20px 50px rgba(0, 0, 0, 0.6),
+    inset 10px 10px 40px rgba(255, 255, 255, 0.5),
+    inset -5px -5px 20px rgba(0, 0, 0, 0.4),
+    /* Oberflächenglanz */
+    inset 15px 15px 30px rgba(255, 255, 255, 0.4);
+  filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.7));
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.5s ease-in;
+}
+
+.sphere.loaded {
+  opacity: 1;
+}
+
+/* Sphere 1 - Hellblau */
+.sphere1 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle at 25% 25%, rgba(173, 216, 255, 1) 0%, rgba(135, 206, 235, 0.7) 20%, rgba(100, 150, 200, 0.4) 45%, rgba(50, 100, 150, 0.1) 70%, rgba(0, 0, 0, 0.1));
+}
+
+/* Sphere 2 - Rosa */
+.sphere2 {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle at 25% 25%, rgba(255, 192, 203, 1) 0%, rgba(255, 105, 180, 0.7) 20%, rgba(220, 20, 100, 0.4) 45%, rgba(150, 0, 50, 0.1) 70%, rgba(0, 0, 0, 0.1));
+}
+
+/* Sphere 3 - Grün */
+.sphere3 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle at 25% 25%, rgba(144, 238, 144, 1) 0%, rgba(34, 139, 34, 0.7) 20%, rgba(0, 100, 0, 0.4) 45%, rgba(0, 50, 0, 0.1) 70%, rgba(0, 0, 0, 0.1));
+}
+
+/* Sphere 4 - Orange */
+.sphere4 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle at 25% 25%, rgba(255, 218, 185, 1) 0%, rgba(255, 165, 0, 0.7) 20%, rgba(255, 140, 0, 0.4) 45%, rgba(200, 100, 0, 0.1) 70%, rgba(0, 0, 0, 0.1));
+}
+
+/* Sphere 5 - Violett */
+.sphere5 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle at 25% 25%, rgba(220, 150, 255, 1) 0%, rgba(186, 85, 211, 0.8) 20%, rgba(147, 112, 219, 0.5) 45%, rgba(100, 50, 150, 0.15) 70%, rgba(0, 0, 0, 0.1));
+}
+
 
 .glass-container {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50px;
-  padding: 7rem 8rem;
+  padding: 4rem 5rem;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.5),
-    inset 0 1px 2px rgba(255, 255, 255, 0.3),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-  min-width: 800px;
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  min-width: auto;
+  max-width: 900px;
   position: relative;
-  z-index: 10;
+  z-index: 20;
   transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
-  backdrop-filter: blur(50px) brightness(1.1);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.glass-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 50px 50px 0 0;
+}
+
+.glass-container:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .glass-container::before {
@@ -124,48 +991,102 @@ onMounted(() => {
 }
 
 .glass-container:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
-    0 12px 50px rgba(100, 200, 255, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.4),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-  transform: translateY(-5px);
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .landing-page h1 {
-  font-size: 4.5rem;
+  font-size: 5.5rem;
   color: #ffffff;
   text-align: center;
   font-weight: 900;
   letter-spacing: 3px;
+  margin: 0 auto 1.5rem auto;
+  padding: 0;
   text-shadow:
-    0 2px 20px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(100, 200, 255, 0.2);
-  background: linear-gradient(135deg, #ffffff 0%, #c0c0ff 50%, #e0e0e0 100%);
+    0 4px 30px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 50%, #d0d0d0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 20px rgba(100, 200, 255, 0.15));
+  filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.12));
+  animation: slideInDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  line-height: 1.2;
+  width: 100%;
+}
+
+/* Hero Subtitle */
+.hero-subtitle {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  margin: 0 0 1rem 0;
+  padding: 0;
+  animation: slideInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards;
+  line-height: 1.4;
+}
+
+/* Hero Tagline */
+.hero-tagline {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  font-weight: 300;
+  letter-spacing: 0.8px;
+  margin: 0 0 2.5rem 0;
+  padding: 0;
+  max-width: 600px;
+  line-height: 1.7;
+  animation: slideInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s backwards;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .btn-login {
   margin-top: 2.5rem;
-  padding: 1rem 2.5rem;
-  background: rgba(100, 200, 255, 0.1);
-  border: 1.5px solid rgba(100, 200, 255, 0.4);
+  padding: 1.2rem 3.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
   border-radius: 30px;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
+  letter-spacing: 1px;
+  animation: slideInUp 0.8s ease-out 0.6s backwards;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
 .btn-login::before {
@@ -180,11 +1101,11 @@ onMounted(() => {
 }
 
 .btn-login:hover {
-  background: rgba(100, 200, 255, 0.2);
-  border-color: rgba(100, 200, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: translateY(-3px);
   box-shadow:
-    0 10px 30px rgba(100, 200, 255, 0.2),
+    0 10px 30px rgba(255, 255, 255, 0.1),
     inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
@@ -192,14 +1113,8 @@ onMounted(() => {
   left: 100%;
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-30px);
-  }
-}
+/* Lichtimpulse - subtil und elegant - hinter Sphären */
+/* ENTFERNT */
 
 @media (max-width: 768px) {
   .glass-container {
@@ -211,6 +1126,261 @@ onMounted(() => {
     font-size: 2.5rem;
     letter-spacing: 1px;
   }
+}
+
+/* Auth Modal Flip Animation - Option 3 */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.auth-modal-flip-container {
+  perspective: 1200px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+}
+
+.auth-modal-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transform-style: preserve-3d;
+}
+
+.auth-modal-flipper.flipped {
+  transform: rotateY(180deg);
+}
+
+.auth-modal-front,
+.auth-modal-back {
+  backface-visibility: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.auth-modal-front {
+  transform: rotateY(0deg);
+}
+
+.auth-modal-back {
+  transform: rotateY(180deg);
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.auth-modal-front.glass,
+.auth-modal-back.glass {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 40px;
+  padding: 3.5rem 2.5rem;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.auth-modal-front.glass::before,
+.auth-modal-back.glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 40px 40px 0 0;
+}
+
+.auth-form {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-form h2 {
+  font-size: 1.8rem;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.auth-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-field:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.error-message {
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  color: #ff9999;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  margin-bottom: 1.2rem;
+  font-size: 0.8rem;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.btn-submit:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px rgba(255, 255, 255, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.auth-toggle {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+.toggle-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.95);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 0.3s ease;
+  padding: 0;
+  margin-left: 0.3rem;
+}
+
+.toggle-link:hover {
+  color: rgba(200, 200, 255, 1);
+}
+
+.btn-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.btn-close.flipped {
+  transform: rotateY(180deg);
+}
+
+.btn-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.btn-close.flipped:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: rotateY(180deg) rotate(90deg);
+}
+
+
+/* Transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .auth-modal,
+.modal-fade-leave-active .auth-modal {
+  transition: all 0.3s ease;
+}
+
+.modal-fade-enter .auth-modal,
+.modal-fade-leave-to .auth-modal {
+  transform: scale(0.9);
+  opacity: 0;
 }
 </style>
 
