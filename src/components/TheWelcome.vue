@@ -590,6 +590,7 @@ onUnmounted(() => {
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scroll-container::-webkit-scrollbar {
@@ -612,7 +613,6 @@ onUnmounted(() => {
 /* Section Styles */
 .section {
   width: 100%;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -625,16 +625,19 @@ onUnmounted(() => {
 .hero-section {
   background: #000000;
   padding-top: 100px;
+  min-height: 100vh;
 }
 
 .features-section {
   background: #000000;
   padding: 6rem 2rem;
+  min-height: auto;
 }
 
 .how-it-works-section {
   background: #000000;
   padding: 6rem 2rem;
+  min-height: auto;
 }
 
 .section-content {
@@ -827,6 +830,7 @@ onUnmounted(() => {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 3rem 2rem 1rem;
   color: rgba(255, 255, 255, 0.7);
+  width: 100%;
 }
 
 .footer-content {
