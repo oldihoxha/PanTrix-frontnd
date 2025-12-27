@@ -1362,30 +1362,35 @@ onUnmounted(() => {
     right: 1rem;
   }
 
-  /* Sphären - kleinere Sphären für Handy */
+  /* Sphären - kleinere Sphären für Handy (Farben intensiv!) */
   .sphere1 {
     width: 120px !important;
     height: 120px !important;
+    background: radial-gradient(circle at 25% 25%, rgba(100, 200, 255, 1) 0%, rgba(50, 150, 255, 0.9) 20%, rgba(30, 120, 220, 0.6) 45%, rgba(20, 80, 180, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
   }
 
   .sphere2 {
     width: 90px !important;
     height: 90px !important;
+    background: radial-gradient(circle at 25% 25%, rgba(255, 100, 180, 1) 0%, rgba(255, 50, 150, 0.9) 20%, rgba(230, 20, 120, 0.6) 45%, rgba(180, 10, 80, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
   }
 
   .sphere3 {
     width: 110px !important;
     height: 110px !important;
+    background: radial-gradient(circle at 25% 25%, rgba(100, 255, 100, 1) 0%, rgba(50, 220, 50, 0.9) 20%, rgba(20, 180, 20, 0.6) 45%, rgba(10, 140, 10, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
   }
 
   .sphere4 {
     width: 100px !important;
     height: 100px !important;
+    background: radial-gradient(circle at 25% 25%, rgba(255, 180, 80, 1) 0%, rgba(255, 150, 50, 0.9) 20%, rgba(230, 120, 20, 0.6) 45%, rgba(180, 90, 10, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
   }
 
   .sphere5 {
     width: 110px !important;
     height: 110px !important;
+    background: radial-gradient(circle at 25% 25%, rgba(200, 100, 255, 1) 0%, rgba(180, 60, 255, 0.9) 20%, rgba(150, 40, 220, 0.6) 45%, rgba(120, 20, 180, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
   }
 }
 
