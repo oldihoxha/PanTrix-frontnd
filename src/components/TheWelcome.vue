@@ -30,17 +30,20 @@ let animationFrameId: number | null = null
 
 const initSpheres = () => {
   const sphereElements = document.querySelectorAll('.sphere')
-  const sizes = [350, 280, 320, 300, 320]
+  const sizes = [350, 280, 320, 300, 320] as const
 
-  spheres.value = Array.from(sphereElements).map((el, idx) => ({
-    element: el as HTMLElement,
-    x: Math.random() * window.innerWidth,
-    y: Math.random() * window.innerHeight,
-    vx: (Math.random() - 0.5) * 2,
-    vy: (Math.random() - 0.5) * 2,
-    radius: sizes[idx] / 2,
-    mass: 1
-  }))
+  spheres.value = Array.from(sphereElements).map((el, idx) => {
+    const element = el as HTMLElement
+    return {
+      element,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      radius: sizes[idx] / 2,
+      mass: 1
+    }
+  })
 }
 
 const updatePhysics = () => {
