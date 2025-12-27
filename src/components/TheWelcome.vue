@@ -77,8 +77,8 @@ const updatePhysics = () => {
     }
 
     // Apply position
-    sphere.element.style.left = sphere.x - sphere.radius + 'px'
-    sphere.element.style.top = sphere.y - sphere.radius + 'px'
+    sphere.element!.style.left = sphere.x - sphere.radius + 'px'
+    sphere.element!.style.top = sphere.y - sphere.radius + 'px'
   })
 
   // Sphere-to-sphere collision (gegenseitige Abstoßung - echte Physik)
@@ -86,6 +86,8 @@ const updatePhysics = () => {
     for (let j = i + 1; j < spheres.value.length; j++) {
       const s1 = spheres.value[i]
       const s2 = spheres.value[j]
+
+      if (!s1 || !s2) continue
 
       const dx = s2.x - s1.x
       const dy = s2.y - s1.y
