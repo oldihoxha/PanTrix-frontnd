@@ -66,9 +66,6 @@ body {
   min-height: 100vh;
   color: #ffffff;
   background: #000000;
-  transition:
-    color 0.5s,
-    background-color 0.5s;
   line-height: 1.6;
   font-family:
     Inter,

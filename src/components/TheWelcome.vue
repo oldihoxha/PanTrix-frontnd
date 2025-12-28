@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import HomeView from './HomeView.vue'
 
 const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 const products = ref<any[]>([])
@@ -15,6 +16,7 @@ const passwordConfirm = ref('')
 const errorMessage = ref('')
 const isLoggedIn = ref(false)
 const currentUser = ref<string>('')
+const showHomePage = ref(false)
 
 // Physik-Engine für Sphären
 interface Sphere {
@@ -225,6 +227,7 @@ const toggleMode = () => {
 const logout = () => {
   isLoggedIn.value = false
   currentUser.value = ''
+  showHomePage.value = false
   email.value = ''
   password.value = ''
   passwordConfirm.value = ''
@@ -247,6 +250,7 @@ const handleLogin = () => {
   console.log('Login:', email.value, password.value)
   isLoggedIn.value = true
   currentUser.value = email.value
+  showHomePage.value = true
   closeAuthModal()
 }
 
@@ -274,7 +278,9 @@ const handleRegister = () => {
   }
 
   console.log('Register:', email.value, password.value)
-  // Hier später Backend-Integration
+  isLoggedIn.value = true
+  currentUser.value = email.value
+  showHomePage.value = true
   closeAuthModal()
 }
 
@@ -289,7 +295,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="landing-page">
+  <!-- Home Page (nach Login) -->
+  <HomeView v-if="showHomePage" :current-user="currentUser" :on-logout="logout" />
+
+  <!-- Landing Page (vor Login) -->
+  <div v-else class="landing-page">
     <!-- Top Bar / Header -->
     <header class="top-bar">
       <div class="logo-container">
