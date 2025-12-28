@@ -13,6 +13,8 @@ const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
 const errorMessage = ref('')
+const isLoggedIn = ref(false)
+const currentUser = ref<string>('')
 
 // Physik-Engine für Sphären
 interface Sphere {
@@ -220,6 +222,15 @@ const toggleMode = () => {
   passwordConfirm.value = ''
 }
 
+const logout = () => {
+  isLoggedIn.value = false
+  currentUser.value = ''
+  email.value = ''
+  password.value = ''
+  passwordConfirm.value = ''
+  errorMessage.value = ''
+}
+
 const handleLogin = () => {
   errorMessage.value = ''
 
@@ -234,7 +245,8 @@ const handleLogin = () => {
   }
 
   console.log('Login:', email.value, password.value)
-  // Hier später Backend-Integration
+  isLoggedIn.value = true
+  currentUser.value = email.value
   closeAuthModal()
 }
 
@@ -286,9 +298,16 @@ onUnmounted(() => {
         </div>
       </div>
       <nav class="nav-links">
-        <button class="nav-button">Über uns</button>
-        <button class="nav-button">Features</button>
-        <button class="nav-button" @click="openAuthModal" style="margin-left: auto;">Anmelden</button>
+        <button v-if="!isLoggedIn" class="nav-button">Über uns</button>
+        <button v-if="!isLoggedIn" class="nav-button">Features</button>
+        <button v-if="!isLoggedIn" class="nav-button" @click="openAuthModal" style="margin-left: auto;">Anmelden</button>
+
+        <!-- Profil Section wenn angemeldet -->
+        <div v-if="isLoggedIn" class="profile-section">
+          <div class="profile-icon">👤</div>
+          <span class="profile-email">{{ currentUser }}</span>
+          <button class="nav-button logout-btn" @click="logout">Abmelden</button>
+        </div>
       </nav>
     </header>
 
@@ -591,6 +610,58 @@ onUnmounted(() => {
 .nav-button:hover {
   color: #ffffff;
   background: rgba(42, 42, 42, 0.11);
+}
+
+/* Profile Section - Glass Morphism */
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.profile-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #ffffff;
+}
+
+.profile-icon:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+}
+
+.profile-email {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  background: rgba(255, 100, 100, 0.1);
+  border-color: rgba(255, 100, 100, 0.3);
+  color: rgba(255, 150, 150, 0.9);
+}
+
+.logout-btn:hover {
+  background: rgba(255, 100, 100, 0.2);
+  border-color: rgba(255, 100, 100, 0.5);
+  color: #ff8888;
 }
 
 /* Scroll Container */
