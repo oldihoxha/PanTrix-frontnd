@@ -601,6 +601,7 @@ onUnmounted(() => {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   background: #000000;
+  min-height: 0;
 }
 
 .scroll-container::-webkit-scrollbar {
@@ -635,19 +636,17 @@ onUnmounted(() => {
 .hero-section {
   background: #000000;
   padding-top: 100px;
-  min-height: 100vh;
+  padding-bottom: 4rem;
 }
 
 .features-section {
   background: #000000;
   padding: 6rem 2rem;
-  min-height: auto;
 }
 
 .how-it-works-section {
   background: #000000;
   padding: 6rem 2rem;
-  min-height: auto;
 }
 
 .section-content {
@@ -677,10 +676,10 @@ onUnmounted(() => {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 15px;
   padding: 3rem 1.5rem;
   text-align: center;
@@ -742,9 +741,10 @@ onUnmounted(() => {
 .step {
   flex: 1;
   min-width: 250px;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   padding: 2rem;
   text-align: center;
@@ -812,13 +812,14 @@ onUnmounted(() => {
 .upcoming-feature {
   margin-top: 3rem;
   padding: 1.5rem 2rem;
-  background: rgba(144, 238, 144, 0.05);
+  background: rgba(144, 238, 144, 0.08);
   border: 1px solid rgba(144, 238, 144, 0.3);
   border-radius: 15px;
   text-align: center;
   color: rgba(144, 238, 144, 0.9);
   font-size: 0.95rem;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   transition: all 0.3s ease;
 }
 
@@ -916,47 +917,86 @@ onUnmounted(() => {
     inset 15px 15px 30px rgba(255, 255, 255, 0.4);
   filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.7));
   z-index: 1;
-  opacity: 0;
-  transition: opacity 0.5s ease-in;
+  opacity: 1;
+  animation: fallFromTop var(--fall-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-.sphere.loaded {
-  opacity: 1;
+/* Individuelle Verzögerungen für jede Sphäre beim Laden */
+.sphere1 {
+  --fall-duration: 1.4s;
+  animation-delay: 0s;
 }
+
+.sphere2 {
+  --fall-duration: 1.6s;
+  animation-delay: 0.15s;
+}
+
+.sphere3 {
+  --fall-duration: 1.5s;
+  animation-delay: 0.1s;
+}
+
+.sphere4 {
+  --fall-duration: 1.7s;
+  animation-delay: 0.2s;
+}
+
+.sphere5 {
+  --fall-duration: 1.55s;
+  animation-delay: 0.05s;
+}
+
+@keyframes fallFromTop {
+  0% {
+    transform: translateY(-150vh);
+    opacity: 0;
+  }
+
+  5% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 
 /* Sphere 1 - Hellblau */
 .sphere1 {
   width: 350px;
   height: 350px;
-  background: radial-gradient(circle at 25% 25%, rgba(173, 216, 255, 1) 0%, rgba(135, 206, 235, 0.7) 20%, rgba(100, 150, 200, 0.4) 45%, rgba(50, 100, 150, 0.1) 70%, rgba(0, 0, 0, 0.1));
+  background: radial-gradient(circle at 25% 25%, rgba(100, 200, 255, 1) 0%, rgba(50, 150, 255, 0.9) 20%, rgba(30, 120, 220, 0.6) 45%, rgba(20, 80, 180, 0.2) 70%, rgba(0, 0, 0, 0.3));
 }
 
 /* Sphere 2 - Rosa */
 .sphere2 {
   width: 280px;
   height: 280px;
-  background: radial-gradient(circle at 25% 25%, rgba(255, 192, 203, 1) 0%, rgba(255, 105, 180, 0.7) 20%, rgba(220, 20, 100, 0.4) 45%, rgba(150, 0, 50, 0.1) 70%, rgba(0, 0, 0, 0.1));
+  background: radial-gradient(circle at 25% 25%, rgba(255, 100, 180, 1) 0%, rgba(255, 50, 150, 0.9) 20%, rgba(230, 20, 120, 0.6) 45%, rgba(180, 10, 80, 0.2) 70%, rgba(0, 0, 0, 0.3));
 }
 
 /* Sphere 3 - Grün */
 .sphere3 {
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle at 25% 25%, rgba(144, 238, 144, 1) 0%, rgba(34, 139, 34, 0.7) 20%, rgba(0, 100, 0, 0.4) 45%, rgba(0, 50, 0, 0.1) 70%, rgba(0, 0, 0, 0.1));
+  background: radial-gradient(circle at 25% 25%, rgba(100, 255, 100, 1) 0%, rgba(50, 220, 50, 0.9) 20%, rgba(20, 180, 20, 0.6) 45%, rgba(10, 140, 10, 0.2) 70%, rgba(0, 0, 0, 0.3));
 }
 
 /* Sphere 4 - Orange */
 .sphere4 {
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle at 25% 25%, rgba(255, 218, 185, 1) 0%, rgba(255, 165, 0, 0.7) 20%, rgba(255, 140, 0, 0.4) 45%, rgba(200, 100, 0, 0.1) 70%, rgba(0, 0, 0, 0.1));
+  background: radial-gradient(circle at 25% 25%, rgba(255, 180, 80, 1) 0%, rgba(255, 150, 50, 0.9) 20%, rgba(230, 120, 20, 0.6) 45%, rgba(180, 90, 10, 0.2) 70%, rgba(0, 0, 0, 0.3));
 }
 
 /* Sphere 5 - Violett */
 .sphere5 {
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle at 25% 25%, rgba(220, 150, 255, 1) 0%, rgba(186, 85, 211, 0.8) 20%, rgba(147, 112, 219, 0.5) 45%, rgba(100, 50, 150, 0.15) 70%, rgba(0, 0, 0, 0.1));
+  background: radial-gradient(circle at 25% 25%, rgba(200, 100, 255, 1) 0%, rgba(180, 60, 255, 0.9) 20%, rgba(150, 40, 220, 0.6) 45%, rgba(120, 20, 180, 0.2) 70%, rgba(0, 0, 0, 0.3));
 }
 
 
@@ -998,22 +1038,6 @@ onUnmounted(() => {
 .glass-container:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.2);
-}
-
-.glass-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  border-radius: 50px 50px 0 0;
-}
-
-.glass-container:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
     0 6px 20px rgba(0, 0, 0, 0.1),
     inset 0 1px 1px rgba(255, 255, 255, 0.2);
