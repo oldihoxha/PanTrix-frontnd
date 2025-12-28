@@ -552,10 +552,10 @@ onMounted(() => {
 .my-pantry-hero-btn {
   width: 100%;
   max-width: 600px;
-  background: linear-gradient(135deg, rgba(100, 200, 255, 0.15) 0%, rgba(144, 238, 144, 0.1) 100%);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 2px solid rgba(100, 200, 255, 0.5);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 30px;
   padding: 3rem 2rem;
   text-align: center;
@@ -568,6 +568,9 @@ onMounted(() => {
   gap: 1.5rem;
   position: relative;
   overflow: hidden;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .my-pantry-hero-btn::before {
@@ -576,15 +579,20 @@ onMounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 30px 30px 0 0;
 }
 
 .my-pantry-hero-btn:hover {
-  background: linear-gradient(135deg, rgba(100, 200, 255, 0.25) 0%, rgba(144, 238, 144, 0.2) 100%);
-  border-color: rgba(100, 200, 255, 0.8);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-8px);
-  box-shadow: 0 30px 80px rgba(100, 200, 255, 0.3);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
 }
 
 .pantry-icon {
@@ -937,38 +945,60 @@ onMounted(() => {
 
 /* Enhanced Glassmorphism - Option 9 */
 .stats-visualization-grid .stat-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-  backdrop-filter: blur(40px) saturate(150%);
-  -webkit-backdrop-filter: blur(40px) saturate(150%);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 25px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 25px 80px rgba(0, 0, 0, 0.5),
-    0 0 60px rgba(100, 200, 255, 0.05);
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-visualization-grid .stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 25px 25px 0 0;
 }
 
 .stats-visualization-grid .stat-card:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 40px 120px rgba(0, 0, 0, 0.6),
-    0 0 100px rgba(100, 200, 255, 0.15);
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
 }
 
 /* Enhanced Detail Modal Glassmorphism */
 .detail-content {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
-  backdrop-filter: blur(50px) saturate(180%);
-  -webkit-backdrop-filter: blur(50px) saturate(180%);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 40px 120px rgba(0, 0, 0, 0.6),
-    0 0 80px rgba(100, 200, 255, 0.1);
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.detail-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 30px 30px 0 0;
 }
 
 /* Mini Stats */
@@ -1068,7 +1098,7 @@ onMounted(() => {
 }
 
 .alert-card {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1077,13 +1107,34 @@ onMounted(() => {
   margin-bottom: 1.5rem;
   display: flex;
   gap: 1.5rem;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.alert-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 20px 20px 0 0;
 }
 
 .alert-card:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.2);
   transform: translateX(8px);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
 }
 
 .alert-card.warning {

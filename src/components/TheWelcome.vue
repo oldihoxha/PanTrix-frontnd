@@ -757,20 +757,24 @@ onUnmounted(() => {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 25px;
   padding: 3rem 1.5rem;
   text-align: center;
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   position: relative;
   overflow: hidden;
   min-height: 350px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  z-index: 10;
 }
 
 .feature-card::before {
@@ -780,14 +784,19 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 25px 25px 0 0;
 }
 
 .feature-card:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-10px);
-  box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
 }
 
 .feature-icon {
@@ -822,15 +831,20 @@ onUnmounted(() => {
 .step {
   flex: 1;
   min-width: 250px;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 2rem;
   text-align: center;
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  z-index: 10;
 }
 
 .step::before {
@@ -840,13 +854,19 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 20px 20px 0 0;
 }
 
 .step:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-5px);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
 }
 
 .step-number {
