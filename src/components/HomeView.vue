@@ -20,7 +20,7 @@
     <div class="scroll-container">
       <!-- Hero Section -->
       <section class="section hero-section">
-        <h1>Willkommen, {{ userName }}! 👋</h1>
+        <h1>Willkommen, {{ userName }}! </h1>
         <p class="home-subtitle">Deine Lebensmittel verwalten</p>
         <p class="home-tagline">{{ currentDate }}</p>
       </section>
@@ -330,7 +330,7 @@ const animateCounter = (targetValue: number, displayRef: any, duration: number =
 
   const updateCount = () => {
     const elapsed = Date.now() - startTime
-    const progress = Math.min(elapsed / duration, 1)
+    const progress = Math.min(elapsed / duration, 0.1)
 
     // Easing function (ease-out)
     const easeProgress = 1 - Math.pow(1 - progress, 3)

@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import HomeView from './HomeView.vue'
+import * as THREE from 'three'
 
 const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 const products = ref<any[]>([])
@@ -18,160 +19,392 @@ const isLoggedIn = ref(false)
 const currentUser = ref<string>('')
 const showHomePage = ref(false)
 
-// Physik-Engine für Sphären
-interface Sphere {
-  element: HTMLElement
-  x: number
-  y: number
-  vx: number
-  vy: number
-  radius: number
-  mass: number
-}
-
-const spheres = ref<Sphere[]>([])
+// 3D Scene Setup
+let scene: THREE.Scene
+let camera: THREE.OrthographicCamera
+let renderer: THREE.WebGLRenderer
+let apples: any[] = []
 let animationFrameId: number | null = null
+const BOUNCE_DAMPING = 0.7  // Weltraum-Effekt: sanftes, elastisches Abprallen
 
-const initSpheres = () => {
-  const sphereElements = Array.from(document.querySelectorAll('.sphere')) as HTMLElement[]
+const APPLE_RADIUS = 80 // Größerer Apfel (war 55, jetzt 80)
 
-  // Responsive Größen basierend auf Viewport
-  let sizes: readonly number[]
-  if (window.innerWidth <= 768) {
-    // Mobile Größen
-    sizes = [120, 90, 110, 100, 110] as const
-  } else {
-    // Desktop/Tablet Größen
-    sizes = [350, 280, 320, 300, 320] as const
-  }
-  const newSpheres: Sphere[] = []
+let heroSectionHeight = 0
+let viewportWidthWorld = 0
+let viewportHeightWorld = 0
 
-  for (let idx = 0; idx < sphereElements.length; idx++) {
-    const element = sphereElements[idx]!
-    const size = sizes[idx]!
-    newSpheres.push({
-      element,
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      radius: size / 2,
-      mass: 1
-    })
-  }
+// Scale Animation States
+const currentSloganIndex = ref(0)
+const currentSlogan = ref('')
+const isScaling = ref(false)
+const isFading = ref(false)
 
-  spheres.value = newSpheres
-}
+// Slogans für die Typing-Animation
+const slogans = [
+  'Dein intelligenter Lebensmittel-Tracker',
+  'Spare Geld, schütze die Umwelt, verschwende nichts mehr',
+  'Rette Lebensmittel',
+  'Schone die Umwelt',
+  'Sei nachhaltig'
+]
 
-const updatePhysics = () => {
-  const padding = 50
+// Explosion Animation States
+const isExplosionMode = ref(false)
+const explosionDuration = 2000 // 2 Sekunden
+const explosionStartTime = ref(0)
 
-  // Update positions und check boundaries
-  spheres.value.forEach((sphere, idx) => {
-    // Keine Schwerkraft - konstante Bewegung in zufällige Richtungen
-    // Die Velocities bleiben erhalten, bis zur Collision oder Boundary
+const createRealisticApple = (x: number, y: number, vx: number = 0, vy: number = 0, scale: number = 1.0) => {
+  // Apfel als detaillierte Kugel mit Stieldetails
+  const appleGroup = new THREE.Group()
 
-    // Position update
-    sphere.x += sphere.vx
-    sphere.y += sphere.vy
+  // Hauptkörper - rote Kugel mit realistischen Materialien
+  const sphereGeometry = new THREE.SphereGeometry(APPLE_RADIUS, 64, 64)
 
-    // Boundary collision (Wände) - sanfter Bounce
-    // Nutze window.innerHeight für aktuelle Viewport-Höhe, nicht Scroll-Höhe
-    if (sphere.x - sphere.radius < padding) {
-      sphere.x = padding + sphere.radius
-      sphere.vx *= -1
-    }
-    if (sphere.x + sphere.radius > window.innerWidth - padding) {
-      sphere.x = window.innerWidth - padding - sphere.radius
-      sphere.vx *= -1
-    }
-    if (sphere.y - sphere.radius < 0) { // Top boundary
-      sphere.y = sphere.radius
-      sphere.vy *= -1
-    }
-    if (sphere.y + sphere.radius > window.innerHeight) {
-      sphere.y = window.innerHeight - sphere.radius
-      sphere.vy *= -1
-    }
-
-    // Apply position
-    sphere.element.style.left = sphere.x - sphere.radius + 'px'
-    sphere.element.style.top = sphere.y - sphere.radius + 'px'
+  const appleMaterial = new THREE.MeshStandardMaterial({
+    color: 0xdc3545,  // Natürliches, sattes Rot
+    metalness: 0.05,
+    roughness: 0.5,
+    emissive: 0x330000,  // Subtiles inneres Glühen
+    emissiveIntensity: 0.06,
+    flatShading: false,
+    wireframe: false
   })
 
-  // Sphere-to-sphere collision (gegenseitige Abstoßung - echte Physik)
-  for (let i = 0; i < spheres.value.length; i++) {
-    for (let j = i + 1; j < spheres.value.length; j++) {
-      const s1 = spheres.value[i]
-      const s2 = spheres.value[j]
+  const sphere = new THREE.Mesh(sphereGeometry, appleMaterial)
+  sphere.castShadow = true
+  sphere.receiveShadow = true
+  // Stelle sicher, dass der Apfel immer uniform skaliert ist (keine Verzerrung)
+  sphere.scale.set(1, 1, 1)
+  appleGroup.add(sphere)
 
-      if (!s1 || !s2) continue
+  // Stiel (etwas dunkler und natürlicher)
+  const stemGeometry = new THREE.CylinderGeometry(4, 5, 20, 8)
+  const stemMaterial = new THREE.MeshStandardMaterial({
+    color: 0x6b4423,  // Natürlicheres Braun
+    metalness: 0,
+    roughness: 0.8
+  })
+  const stem = new THREE.Mesh(stemGeometry, stemMaterial)
+  stem.position.y = APPLE_RADIUS + 2
+  stem.castShadow = true
+  stem.receiveShadow = true
+  appleGroup.add(stem)
 
-      const dx = s2.x - s1.x
-      const dy = s2.y - s1.y
-      const distance = Math.sqrt(dx * dx + dy * dy)
-      const minDistance = s1.radius + s2.radius + 5
+  // Blatt
+  const leafGeometry = new THREE.BufferGeometry()
+  const leafVertices = new Float32Array([
+    0, 0, 0,      // Anfang
+    15, 8, 0,     // Spitze
+    18, -2, 0,    // Ende
+    0, -5, 0      // Verbindung
+  ])
+  const leafIndices = [0, 1, 2, 0, 2, 3]
+  leafGeometry.setAttribute('position', new THREE.BufferAttribute(leafVertices, 3))
+  leafGeometry.setIndex(leafIndices)
+  leafGeometry.computeVertexNormals()
 
-      if (distance < minDistance && distance > 0) {
-        // Normalize direction
+  const leafMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3d6b2e,  // Natürlicheres Blattgrün
+    metalness: 0,
+    roughness: 0.6,
+    side: THREE.DoubleSide
+  })
+  const leaf = new THREE.Mesh(leafGeometry, leafMaterial)
+  leaf.position.set(8, APPLE_RADIUS + 2, 0)
+  leaf.rotation.z = 0.3
+  leaf.castShadow = true
+  leaf.receiveShadow = true
+  appleGroup.add(leaf)
+
+  // Glanzpunkt für Realismus
+  const shineGeometry = new THREE.SphereGeometry(25, 32, 32)
+  const shineMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffd9d9,  // Sanfteres Rosa/Weiß
+    metalness: 0.7,
+    roughness: 0.1,
+    emissive: 0xffaaaa,
+    emissiveIntensity: 0.3,
+    transparent: true,
+    opacity: 0.65
+  })
+  const shine = new THREE.Mesh(shineGeometry, shineMaterial)
+  shine.position.set(-12, 15, -15)
+  shine.scale.set(0.6, 0.8, 0.4)
+  appleGroup.add(shine)
+
+  appleGroup.position.set(x, y, 0)
+  // Wende individuelle Skalierung an für Größenvariation
+  appleGroup.scale.set(scale, scale, scale)
+
+  scene.add(appleGroup)
+
+  const appleObj = {
+    type: 'apple',
+    group: appleGroup,
+    mesh: sphere,
+    x: x,
+    y: y,
+    z: 0,
+    vx: vx,  // Nutze übergebene Geschwindigkeit
+    vy: vy,  // Nutze übergebene Geschwindigkeit
+    vz: 0,
+    radius: APPLE_RADIUS * scale,  // Radius angepasst an Scale
+    resting: false,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 0,
+    scale: scale  // Speichere Scale für später
+  }
+
+  apples.push(appleObj)
+  return appleObj
+}
+
+
+const init3DScene = () => {
+  const container = document.querySelector('.hero-section') as HTMLElement
+  if (!container) return
+
+  heroSectionHeight = container.clientHeight
+
+  // Scene setup
+  scene = new THREE.Scene()
+
+  // Schwarzer Hintergrund
+  scene.background = new THREE.Color(0x000000)
+  scene.fog = new THREE.Fog(0x000000, 1500, 4000)
+
+  // Orthographic Camera: sorgt dafür, dass Kugeln unabhängig von X/Y-Position rund bleiben
+  // Wir verwenden World-Einheiten, die 1:1 zu Pixeln sind (Viewport in Pixeln als World)
+  viewportWidthWorld = window.innerWidth
+  viewportHeightWorld = window.innerHeight
+
+  const left = -viewportWidthWorld / 2
+  const right = viewportWidthWorld / 2
+  const top = viewportHeightWorld / 2
+  const bottom = -viewportHeightWorld / 2
+
+  camera = new THREE.OrthographicCamera(left, right, top, bottom, -2000, 2000)
+  // Positioniere Kamera so, dass Z=0 die Ebene ist, auf der Äpfel liegen
+  camera.position.set(0, 0, 1000)
+  camera.lookAt(0, 0, 0)
+
+  // Renderer mit besseren Einstellungen
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+  // begrenze pixel ratio für Performance/Stabilität
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  // setSize und update style zusammen
+  renderer.setSize(window.innerWidth, window.innerHeight, true)
+  // explizit CSS-Größen setzen, damit Canvas-Style und drawing buffer übereinstimmen
+  renderer.domElement.style.width = `${window.innerWidth}px`
+  renderer.domElement.style.height = `${window.innerHeight}px`
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap  // Weichere Schatten
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 1.1  // Leicht erhöht für Premium-Look
+
+  const canvas = container.querySelector('canvas')
+  if (canvas) container.removeChild(canvas)
+  container.insertBefore(renderer.domElement, container.firstChild)
+
+  // Premium Studio-Beleuchtung für hochwertigen Look
+  const ambientLight = new THREE.AmbientLight(0xf0f0ff, 0.3)  // Kühler, subtiler Ambient
+  scene.add(ambientLight)
+
+  // Hauptlicht von oben (kühl-weiß für Premium-Look)
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0)
+  directionalLight.position.set(200, 700, 400)
+  directionalLight.castShadow = true
+  directionalLight.shadow.mapSize.width = 2048
+  directionalLight.shadow.mapSize.height = 2048
+  directionalLight.shadow.camera.left = -600
+  directionalLight.shadow.camera.right = 600
+  directionalLight.shadow.camera.top = 600
+  directionalLight.shadow.camera.bottom = -600
+  directionalLight.shadow.bias = -0.0001
+  scene.add(directionalLight)
+
+  // Fülllicht von der Seite (kühles Blau für Tiefe)
+  const fillLight = new THREE.DirectionalLight(0x88bbff, 0.35)
+  fillLight.position.set(-400, 250, 300)
+  scene.add(fillLight)
+
+  // Akzentlicht von hinten (Cyan für modernen Look)
+  const rimLight = new THREE.DirectionalLight(0x66ddff, 0.4)
+  rimLight.position.set(0, 250, -400)
+  scene.add(rimLight)
+
+  // Warmes Gegenlicht für Kontrast (subtil)
+  const warmAccent = new THREE.PointLight(0xffddaa, 0.25)
+  warmAccent.position.set(350, 450, 350)
+  scene.add(warmAccent)
+
+  // Subtile Boden-Ebene für Schatten-Effekt (unsichtbar, nur für Schatten)
+  const floorGeometry = new THREE.PlaneGeometry(5000, 5000)
+  const floorMaterial = new THREE.ShadowMaterial({ opacity: 0.15 })
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial)
+  floor.rotation.x = -Math.PI / 2
+  floor.position.y = -viewportHeightWorld / 2
+  floor.receiveShadow = true
+  scene.add(floor)
+
+
+  // Erstelle 5 schwebende Äpfel mit verschiedenen Startpositionen und Größen
+  // Langsame Weltraum-Geschwindigkeiten für schwebendes Gefühl
+  const applePositions = [
+    { x: -viewportWidthWorld * 0.3, y: viewportHeightWorld * 0.2, vx: 0.4, vy: -0.3, scale: 0.8 },
+    { x: viewportWidthWorld * 0.25, y: viewportHeightWorld * 0.1, vx: -0.35, vy: 0.45, scale: 1.2 },
+    { x: -viewportWidthWorld * 0.15, y: -viewportHeightWorld * 0.15, vx: 0.3, vy: 0.4, scale: 1.0 },
+    { x: viewportWidthWorld * 0.35, y: -viewportHeightWorld * 0.25, vx: -0.5, vy: -0.35, scale: 1.4 },
+    { x: 0, y: viewportHeightWorld * 0.3, vx: 0.45, vy: 0.3, scale: 0.9 }
+  ]
+
+  applePositions.forEach(pos => {
+    createRealisticApple(pos.x, pos.y, pos.vx, pos.vy, pos.scale)
+  })
+
+  // Starte die Haupt-Animationsschleife
+  animate3D()
+}
+
+const animate3D = () => {
+  animationFrameId = requestAnimationFrame(animate3D)
+
+  // Normale Physik-Phase (Äpfel schweben frei)
+
+  // Physik-Update für jeden Apfel (schwebend, keine Schwerkraft)
+  apples.forEach((apple) => {
+    // Stelle sicher, dass die korrekte individuelle Skalierung erhalten bleibt
+    if (apple.group && apple.scale) apple.group.scale.set(apple.scale, apple.scale, apple.scale)
+    if (apple.mesh) apple.mesh.scale.set(1, 1, 1)
+
+    // Keine Schwerkraft - Äpfel schweben frei
+    // Keine resting-Logik mehr
+
+    // Minimale Reibung (Weltraum-Effekt: fast keine Dämpfung)
+    apple.vx *= 0.9995  // Extrem geringe Reibung für schwebendes Gefühl
+    apple.vy *= 0.9995
+    apple.vz *= 0.9995
+
+    // Position updaten
+    apple.x += apple.vx
+    apple.y += apple.vy
+    apple.z += apple.vz
+
+    // Rotation basierend auf Bewegung (immer)
+    apple.rotationX += apple.vz * 0.005
+    apple.rotationY += apple.vx * 0.005
+    apple.rotationZ += apple.vy * 0.005
+
+    // Alle 4 Grenzen (Bounce an allen Seiten) - Äpfel bleiben im sichtbaren Bereich
+    if (apple.x - apple.radius < -viewportWidthWorld / 2) {
+      apple.x = -viewportWidthWorld / 2 + apple.radius
+      apple.vx *= -BOUNCE_DAMPING
+    }
+    if (apple.x + apple.radius > viewportWidthWorld / 2) {
+      apple.x = viewportWidthWorld / 2 - apple.radius
+      apple.vx *= -BOUNCE_DAMPING
+    }
+
+    if (apple.y - apple.radius < -viewportHeightWorld / 2) {
+      apple.y = -viewportHeightWorld / 2 + apple.radius
+      apple.vy *= -BOUNCE_DAMPING
+    }
+    if (apple.y + apple.radius > viewportHeightWorld / 2) {
+      apple.y = viewportHeightWorld / 2 - apple.radius
+      apple.vy *= -BOUNCE_DAMPING
+    }
+
+    // Mesh Position & Rotation updaten
+    apple.group.position.set(apple.x, apple.y, apple.z)
+
+    // Rotation für Äpfel (nur Mesh rotiert, nicht die Gruppe)
+    if (apple.type === 'apple') {
+      apple.mesh.rotation.x = apple.rotationX
+      apple.mesh.rotation.y = apple.rotationY
+      apple.mesh.rotation.z = apple.rotationZ
+    }
+  })
+
+  // Kollisionserkennung zwischen Äpfeln - wie ursprüngliche Spheren mit Abstoßung
+  for (let i = 0; i < apples.length; i++) {
+    for (let j = i + 1; j < apples.length; j++) {
+      const a1 = apples[i]
+      const a2 = apples[j]
+
+      // Beide sind Spheres (Apfel) - präzise Sphere-Sphere Kollision
+      const dx = a2.x - a1.x
+      const dy = a2.y - a1.y
+      const dz = a2.z - a1.z
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
+
+      // Exakte Radien für perfekte Berührung
+      const minDistance = a1.radius + a2.radius
+
+      if (distance < minDistance && distance > 0.01) {
+        // Kollision detektiert
         const nx = dx / distance
         const ny = dy / distance
-
-        // 1. Separation - verhindert Überlappung
+        const nz = dz / distance
         const overlap = minDistance - distance
-        const separationForce = overlap * 0.7
-        s1.x -= nx * separationForce
-        s1.y -= ny * separationForce
-        s2.x += nx * separationForce
-        s2.y += ny * separationForce
 
-        // 2. Elastische Kollision - Geschwindigkeiten austauschen
-        // Relative Geschwindigkeit
-        const dvx = s2.vx - s1.vx
-        const dvy = s2.vy - s1.vy
+        // Stärkere Separation für deutliche Abstoßung (wie Spheren)
+        const separationForce = overlap / 1.5  // War /2.0, jetzt stärker
 
-        // Relative Geschwindigkeit in Kollisionsrichtung
-        const dotProduct = dvx * nx + dvy * ny
+        a1.x -= nx * separationForce
+        a1.y -= ny * separationForce
+        a1.z -= nz * separationForce
+        a2.x += nx * separationForce
+        a2.y += ny * separationForce
+        a2.z += nz * separationForce
 
-        // Nur wenn sie sich aufeinander zu bewegen
+        // Sanfte elastische Kollision für Weltraum-Effekt
+        const dvx = a2.vx - a1.vx
+        const dvy = a2.vy - a1.vy
+        const dvz = a2.vz - a1.vz
+        const dotProduct = dvx * nx + dvy * ny + dvz * nz
+
         if (dotProduct < 0) {
-          // Für gleiche Massen: Velocities tauschen sich aus
-          // Coefficient of restitution = 1 (perfekt elastisch)
-          const restitution = 1.0
+          const impulse = -dotProduct * 1.2  // Etwas mehr Abstoßung (war 0.5)
 
-          // Impulse berechnen
-          const impulse = -(1 + restitution) * dotProduct / 2
-
-          // Velocities anpassen
-          s1.vx -= impulse * nx
-          s1.vy -= impulse * ny
-          s2.vx += impulse * nx
-          s2.vy += impulse * ny
+          a1.vx -= impulse * nx
+          a1.vy -= impulse * ny
+          a1.vz -= impulse * nz
+          a2.vx += impulse * nx
+          a2.vy += impulse * ny
+          a2.vz += impulse * nz
         }
       }
     }
   }
 
-  animationFrameId = requestAnimationFrame(updatePhysics)
+  renderer.render(scene, camera)
 }
 
-const startPhysicsEngine = () => {
-  initSpheres()
+const onWindowResize = () => {
+  if (!camera || !renderer) return
+  // Recompute pixel-based world viewport and update orthographic camera frustum
+  viewportWidthWorld = window.innerWidth
+  viewportHeightWorld = window.innerHeight
 
-  // Mache die Sphären sichtbar nach kurzer Verzögerung
-  setTimeout(() => {
-    document.querySelectorAll('.sphere').forEach((el) => {
-      el.classList.add('loaded')
-    })
-  }, 50)
+  const left = -viewportWidthWorld / 2
+  const right = viewportWidthWorld / 2
+  const top = viewportHeightWorld / 2
+  const bottom = -viewportHeightWorld / 2
 
-  updatePhysics()
-}
+  // @ts-ignore - update orthographic camera frustum
+  camera.left = left
+  // @ts-ignore
+  camera.right = right
+  // @ts-ignore
+  camera.top = top
+  // @ts-ignore
+  camera.bottom = bottom
+  camera.updateProjectionMatrix()
 
-const stopPhysicsEngine = () => {
-  if (animationFrameId !== null) {
-    cancelAnimationFrame(animationFrameId)
-  }
+  renderer.setSize(window.innerWidth, window.innerHeight, true)
+  renderer.domElement.style.width = `${window.innerWidth}px`
+  renderer.domElement.style.height = `${window.innerHeight}px`
 }
 
 const loadProducts = async () => {
@@ -187,20 +420,6 @@ const loadProducts = async () => {
   }
 }
 
-const addProduct = async (name: string, expiryDate: string) => {
-  try {
-    const response = await axios.post(`${baseUrl}/test`, {
-      name: name,
-      expiryDate: expiryDate
-    })
-    console.log('Produkt hinzugefügt:', response.data)
-    await loadProducts()
-  } catch (error) {
-    console.error('Fehler beim Hinzufügen des Produkts:', error)
-  }
-}
-
-// Auth Modal Funktionen
 const openAuthModal = () => {
   showAuthModal.value = true
   isLoginMode.value = true
@@ -273,7 +492,7 @@ const handleRegister = () => {
   }
 
   if (password.value !== passwordConfirm.value) {
-    errorMessage.value = 'Passwörter stimmen nciht überein'
+    errorMessage.value = 'Passwörter stimmen nicht überein'
     return
   }
 
@@ -284,13 +503,54 @@ const handleRegister = () => {
   closeAuthModal()
 }
 
+// Cube Flip Animation Start - jetzt Fade Animation
+const startCubeAnimation = () => {
+  isScaling.value = true
+
+  const showNextSlogan = () => {
+    // Fade out
+    isFading.value = true
+
+    setTimeout(() => {
+      // Wechsle Text
+      currentSlogan.value = slogans[currentSloganIndex.value]
+      currentSloganIndex.value = (currentSloganIndex.value + 1) % slogans.length
+
+      // Fade in
+      isFading.value = false
+
+      // Nächsten Slogan nach 3 Sekunden anzeigen
+      setTimeout(showNextSlogan, 3000)
+    }, 500) // Fade-Dauer
+  }
+
+  showNextSlogan()
+}
+
+const stopCubeAnimation = () => {
+  isScaling.value = false
+}
+
 onMounted(() => {
   loadProducts()
-  startPhysicsEngine()
+  init3DScene()
+  window.addEventListener('resize', onWindowResize)
+
+  // Starte die Cube-Animation nach dem Laden der Seite
+  startCubeAnimation()
+
+  // Starte die Haupt-Animationsschleife
+  animate3D()
 })
 
 onUnmounted(() => {
-  stopPhysicsEngine()
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId)
+  }
+  window.removeEventListener('resize', onWindowResize)
+  if (renderer) {
+    renderer.dispose()
+  }
 })
 </script>
 
@@ -325,18 +585,14 @@ onUnmounted(() => {
     <div class="scroll-container">
       <!-- Hero Section -->
       <section class="section hero-section">
-        <!-- Schwebende Sphären -->
-        <div class="sphere sphere1"></div>
-        <div class="sphere sphere2"></div>
-        <div class="sphere sphere3"></div>
-        <div class="sphere sphere4"></div>
-        <div class="sphere sphere5"></div>
+        <!-- 3D Canvas wird hier von Three.js eingefügt -->
 
         <!-- Glass Container -->
         <div class="glass-container">
-          <h1>Willkommen zu PanTrix</h1>
-          <p class="hero-subtitle">Dein intelligenter Lebensmittel-Tracker</p>
-          <p class="hero-tagline">Spare Geld, schütze die Umwelt, verschwende nichts mehr</p>
+          <h1>Willkommen bei PanTrix</h1>
+          <div class="cube-container">
+            <p class="typing-text" :class="{ fading: isFading }">{{ currentSlogan }}</p>
+          </div>
           <button class="btn-login" @click="openAuthModal">Jetzt anmelden</button>
         </div>
       </section>
@@ -545,6 +801,17 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* Three.js Canvas - Fixed auf dem Viewport, scrollt nicht mit der Seite */
+:deep(canvas) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 5 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  pointer-events: none !important;
+}
+
 /* Top Bar / Header */
 .top-bar {
   background: rgba(255, 255, 255, 0.02);
@@ -580,13 +847,6 @@ onUnmounted(() => {
   transform: translateY(-2px);
 }
 
-.logo-icon {
-  font-size: 1.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .logo-text {
   font-size: 1.4rem;
   font-weight: 800;
@@ -619,7 +879,7 @@ onUnmounted(() => {
 
 .nav-button:hover {
   color: #ffffff;
-  background: rgba(42, 42, 42, 0.11);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Profile Section - Glass Morphism */
@@ -683,6 +943,8 @@ onUnmounted(() => {
   -webkit-overflow-scrolling: touch;
   background: #000000;
   min-height: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .scroll-container::-webkit-scrollbar {
@@ -712,21 +974,23 @@ onUnmounted(() => {
   padding: 4rem 2rem;
   position: relative;
   margin-top: 0;
+  z-index: 15;
 }
 
 .hero-section {
-  background: #000000;
-  padding-top: 100px;
+  background: transparent;
+  padding-top: 200px; /* Erhöht von 100px auf 150px für bessere Zentrierung */
   padding-bottom: 4rem;
+  z-index: 15;
 }
 
 .features-section {
-  background: #000000;
+  background: transparent;
   padding: 6rem 2rem;
 }
 
 .how-it-works-section {
-  background: #000000;
+  background: transparent;
   padding: 6rem 2rem;
 }
 
@@ -746,6 +1010,32 @@ onUnmounted(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Typing Text - smaller than h1 */
+.typing-text {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  margin: 0 0 1rem 0;
+  padding: 0;
+  line-height: 1.4;
+  transition: opacity 0.4s ease;
+}
+
+.typing-text.fading {
+  opacity: 0;
+}
+
+/* Cube Container for 3D Flip Animation */
+.cube-container {
+  perspective: 1200px;
+  display: inline-block;
+  width: 100%;
+  height: auto;
+  position: relative;
 }
 
 /* Features Grid */
@@ -788,15 +1078,33 @@ onUnmounted(() => {
   border-radius: 25px 25px 0 0;
 }
 
+.feature-card::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 25px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  filter: blur(6px);
+}
+
 .feature-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-10px);
+  transform: translateY(-15px);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+    0 20px 60px rgba(0, 0, 0, 0.25),
+    0 0 35px rgba(255, 255, 255, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+.feature-card:hover::after {
+  opacity: 1;
 }
 
 .feature-icon {
@@ -858,15 +1166,33 @@ onUnmounted(() => {
   border-radius: 20px 20px 0 0;
 }
 
+.step::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  filter: blur(6px);
+}
+
 .step:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-5px);
+  transform: translateY(-10px);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+    0 18px 50px rgba(0, 0, 0, 0.2),
+    0 0 30px rgba(255, 255, 255, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+.step:hover::after {
+  opacity: 1;
 }
 
 .step-number {
@@ -992,116 +1318,7 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.5);
 }
 
-.landing-page {
-  background: #000000;
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Schwebende Sphären */
-.sphere {
-  position: fixed;
-  border-radius: 50%;
-  box-shadow:
-    /* Hauptschatten */
-    0 30px 80px rgba(0, 0, 0, 0.9),
-    /* Innere Highlights */
-    inset -20px -20px 50px rgba(0, 0, 0, 0.6),
-    inset 10px 10px 40px rgba(255, 255, 255, 0.5),
-    inset -5px -5px 20px rgba(0, 0, 0, 0.4),
-    /* Oberflächenglanz */
-    inset 15px 15px 30px rgba(255, 255, 255, 0.4);
-  filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.7));
-  z-index: 1;
-  opacity: 1;
-  animation: fallFromTop var(--fall-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  pointer-events: none;
-}
-
-/* Individuelle Verzögerungen für jede Sphäre beim Laden */
-.sphere1 {
-  --fall-duration: 1.4s;
-  animation-delay: 0s;
-}
-
-.sphere2 {
-  --fall-duration: 1.6s;
-  animation-delay: 0.15s;
-}
-
-.sphere3 {
-  --fall-duration: 1.5s;
-  animation-delay: 0.1s;
-}
-
-.sphere4 {
-  --fall-duration: 1.7s;
-  animation-delay: 0.2s;
-}
-
-.sphere5 {
-  --fall-duration: 1.55s;
-  animation-delay: 0.05s;
-}
-
-@keyframes fallFromTop {
-  0% {
-    transform: translateY(-150vh);
-    opacity: 0;
-  }
-
-  5% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-
-/* Sphere 1 - Hellblau */
-.sphere1 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle at 25% 25%, rgba(100, 200, 255, 1) 0%, rgba(50, 150, 255, 0.9) 20%, rgba(30, 120, 220, 0.6) 45%, rgba(20, 80, 180, 0.2) 70%, rgba(0, 0, 0, 0.3));
-}
-
-/* Sphere 2 - Rosa */
-.sphere2 {
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(circle at 25% 25%, rgba(255, 100, 180, 1) 0%, rgba(255, 50, 150, 0.9) 20%, rgba(230, 20, 120, 0.6) 45%, rgba(180, 10, 80, 0.2) 70%, rgba(0, 0, 0, 0.3));
-}
-
-/* Sphere 3 - Grün */
-.sphere3 {
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle at 25% 25%, rgba(100, 255, 100, 1) 0%, rgba(50, 220, 50, 0.9) 20%, rgba(20, 180, 20, 0.6) 45%, rgba(10, 140, 10, 0.2) 70%, rgba(0, 0, 0, 0.3));
-}
-
-/* Sphere 4 - Orange */
-.sphere4 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle at 25% 25%, rgba(255, 180, 80, 1) 0%, rgba(255, 150, 50, 0.9) 20%, rgba(230, 120, 20, 0.6) 45%, rgba(180, 90, 10, 0.2) 70%, rgba(0, 0, 0, 0.3));
-}
-
-/* Sphere 5 - Violett */
-.sphere5 {
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle at 25% 25%, rgba(200, 100, 255, 1) 0%, rgba(180, 60, 255, 0.9) 20%, rgba(150, 40, 220, 0.6) 45%, rgba(120, 20, 180, 0.2) 70%, rgba(0, 0, 0, 0.3));
-}
-
-
+/* Glass Container */
 .glass-container {
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(20px);
@@ -1113,9 +1330,9 @@ onUnmounted(() => {
     0 4px 15px rgba(0, 0, 0, 0.08),
     inset 0 1px 1px rgba(255, 255, 255, 0.15);
   min-width: auto;
-  max-width: 900px;
+  max-width: 1200px; /* Erhöht von 900px auf 1200px für breitere Darstellung */
   position: relative;
-  z-index: 20;
+  z-index: 12;
   transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
   margin: 0 auto;
   display: flex;
@@ -1129,21 +1346,31 @@ onUnmounted(() => {
 .glass-container::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  border-radius: 50px 50px 0 0;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  filter: blur(8px);
 }
 
-.glass-container:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
+/* .glass-container:hover {
+  transform: translateY(-10px);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    0 20px 60px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(255, 255, 255, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
+
+.glass-container:hover::before {
+  opacity: 1;
+} */
 
 .landing-page h1 {
   font-size: 5.5rem;
@@ -1260,267 +1487,16 @@ onUnmounted(() => {
   left: 100%;
 }
 
-/* Lichtimpulse - subtil und elegant - hinter Sphären */
-/* ENTFERNT */
-
-@media (max-width: 768px) {
-  /* Landing Page */
-  .landing-page {
-    padding-top: 60px;
-  }
-
-  .top-bar {
-    padding: 1rem 1.5rem;
-  }
-
-  .logo-text {
-    font-size: 1.2rem !important;
-  }
-
-  .nav-links {
-    gap: 0.5rem;
-  }
-
-  .nav-button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-  }
-
-  /* Glass Container */
-  .glass-container {
-    min-width: 90%;
-    max-width: 95%;
-    padding: 2rem 1.5rem;
-    border-radius: 30px;
-  }
-
-  /* Hero Text */
-  .landing-page h1 {
-    font-size: 2.2rem;
-    letter-spacing: 1px;
-    margin-bottom: 1rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1.1rem;
-    letter-spacing: 0.8px;
-    margin-bottom: 0.8rem;
-  }
-
-  .hero-tagline {
-    font-size: 0.9rem;
-    letter-spacing: 0.5px;
-    margin-bottom: 1.5rem;
-    line-height: 1.6;
-  }
-
-  /* Button */
-  .btn-login {
-    padding: 0.9rem 2rem;
-    font-size: 0.95rem;
-    margin-top: 1.5rem;
-  }
-
-  /* Sections */
-  .section {
-    padding: 2rem 1rem;
-  }
-
-  .hero-section {
-    padding-top: 60px;
-  }
-
-  .features-section {
-    padding: 3rem 1rem;
-  }
-
-  .how-it-works-section {
-    padding: 3rem 1rem;
-  }
-
-  /* Section Content */
-  .section-content h2 {
-    font-size: 2rem;
-    margin-bottom: 2rem;
-    letter-spacing: 1px;
-  }
-
-  /* Features Grid */
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .feature-card {
-    padding: 1.5rem 1rem;
-    min-height: auto;
-    border-radius: 12px;
-  }
-
-  .feature-icon {
-    font-size: 2rem;
-    margin-bottom: 0.8rem;
-  }
-
-  .feature-card h3 {
-    font-size: 1rem;
-    margin-bottom: 0.6rem;
-  }
-
-  .feature-card p {
-    font-size: 0.8rem;
-    line-height: 1.4;
-  }
-
-  /* Steps */
-  .steps-container {
-    gap: 1rem;
-  }
-
-  .step {
-    padding: 1.5rem 1rem;
-    min-width: auto;
-  }
-
-  .step-number {
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .step h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.6rem;
-  }
-
-  .step p {
-    font-size: 0.8rem;
-  }
-
-  .step-arrow {
-    font-size: 1.5rem;
-    margin: 0 0.5rem;
-  }
-
-  /* Upcoming Feature */
-  .upcoming-feature {
-    padding: 1.2rem 1rem;
-    margin-top: 2rem;
-    font-size: 0.85rem;
-  }
-
-  .upcoming-feature p {
-    font-size: 0.85rem;
-  }
-
-  /* Footer */
-  .footer {
-    padding: 2rem 1rem 1rem;
-  }
-
-  .footer-content {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .footer-section h4 {
-    font-size: 1rem;
-  }
-
-  .footer-section p,
-  .footer-section a,
-  .footer-bottom p {
-    font-size: 0.8rem;
-  }
-
-  /* Auth Modal */
-  .auth-modal-flip-container {
-    width: 95%;
-    max-width: 100%;
-  }
-
-  .auth-modal-front.glass,
-  .auth-modal-back.glass {
-    padding: 2rem 1.5rem;
-    border-radius: 25px;
-  }
-
-  .auth-form h2 {
-    font-size: 1.4rem;
-    margin-bottom: 1rem;
-  }
-
-  .auth-subtitle {
-    font-size: 0.8rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .form-group {
-    margin-bottom: 1.2rem;
-  }
-
-  .form-group label {
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .input-field {
-    padding: 0.8rem 0.9rem;
-    font-size: 0.9rem;
-  }
-
-  .btn-submit {
-    padding: 0.8rem;
-    font-size: 0.9rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .auth-toggle {
-    font-size: 0.75rem;
-  }
-
-  .btn-close {
-    width: 35px;
-    height: 35px;
-    font-size: 1.2rem;
-    top: 1rem;
-    right: 1rem;
-  }
-
-  /* Sphären - kleinere Sphären für Handy (Farben intensiv!) */
-  .sphere1 {
-    width: 120px !important;
-    height: 120px !important;
-    background: radial-gradient(circle at 25% 25%, rgba(100, 200, 255, 1) 0%, rgba(50, 150, 255, 0.9) 20%, rgba(30, 120, 220, 0.6) 45%, rgba(20, 80, 180, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
-  }
-
-  .sphere2 {
-    width: 90px !important;
-    height: 90px !important;
-    background: radial-gradient(circle at 25% 25%, rgba(255, 100, 180, 1) 0%, rgba(255, 50, 150, 0.9) 20%, rgba(230, 20, 120, 0.6) 45%, rgba(180, 10, 80, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
-  }
-
-  .sphere3 {
-    width: 110px !important;
-    height: 110px !important;
-    background: radial-gradient(circle at 25% 25%, rgba(100, 255, 100, 1) 0%, rgba(50, 220, 50, 0.9) 20%, rgba(20, 180, 20, 0.6) 45%, rgba(10, 140, 10, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
-  }
-
-  .sphere4 {
-    width: 100px !important;
-    height: 100px !important;
-    background: radial-gradient(circle at 25% 25%, rgba(255, 180, 80, 1) 0%, rgba(255, 150, 50, 0.9) 20%, rgba(230, 120, 20, 0.6) 45%, rgba(180, 90, 10, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
-  }
-
-  .sphere5 {
-    width: 110px !important;
-    height: 110px !important;
-    background: radial-gradient(circle at 25% 25%, rgba(200, 100, 255, 1) 0%, rgba(180, 60, 255, 0.9) 20%, rgba(150, 40, 220, 0.6) 45%, rgba(120, 20, 180, 0.2) 70%, rgba(0, 0, 0, 0.3)) !important;
-  }
+/* Auth Modal */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-/* Auth Modal Flip Animation - Option 3 */
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 .modal-overlay {
   position: fixed;
@@ -1528,26 +1504,26 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
+  z-index: 100;
 }
 
 .auth-modal-flip-container {
-  perspective: 1200px;
-  width: 90%;
-  max-width: 500px;
   position: relative;
+  width: 400px;
+  height: 500px;
 }
 
 .auth-modal-flipper {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: transform 0.6s;
   transform-style: preserve-3d;
 }
 
@@ -1557,6 +1533,9 @@ onUnmounted(() => {
 
 .auth-modal-front,
 .auth-modal-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   backface-visibility: hidden;
   position: relative;
   width: 100%;
@@ -1578,46 +1557,32 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 40px;
-  padding: 3.5rem 2.5rem;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-}
-
-.auth-modal-front.glass::before,
-.auth-modal-back.glass::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  border-radius: 40px 40px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
 .auth-form {
-  position: relative;
-  z-index: 1;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
 }
 
 .auth-form h2 {
-  font-size: 1.8rem;
   color: #ffffff;
-  text-align: center;
   margin-bottom: 0.5rem;
+  text-align: center;
+  font-size: 1.8rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 .auth-subtitle {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.6);
   text-align: center;
   margin-bottom: 2rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.3px;
+  font-size: 0.9rem;
 }
 
 .form-group {
@@ -1626,153 +1591,131 @@ onUnmounted(() => {
 
 .form-group label {
   display: block;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 500;
-  margin-bottom: 0.6rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .input-field {
   width: 100%;
-  padding: 0.9rem 1rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  font-family: inherit;
+}
+
+.input-field:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .input-field::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
 
-.input-field:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
-}
-
 .error-message {
-  background: rgba(244, 67, 54, 0.15);
-  border: 1px solid rgba(244, 67, 54, 0.4);
-  color: #ff9999;
-  padding: 0.7rem 0.9rem;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
   border-radius: 8px;
-  margin-bottom: 1.2rem;
-  font-size: 0.8rem;
   text-align: center;
-  letter-spacing: 0.3px;
 }
 
 .btn-submit {
   width: 100%;
-  padding: 0.9rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
-  border-radius: 10px;
-  font-size: 0.9rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  margin-bottom: 1.5rem;
-  letter-spacing: 0.5px;
+  margin-top: 1rem;
 }
 
 .btn-submit:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+  background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow:
-    0 8px 20px rgba(255, 255, 255, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
 .auth-toggle {
-  text-align: center;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.8rem;
-  letter-spacing: 0.3px;
-  line-height: 1.4;
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
 }
 
 .toggle-link {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.95);
-  text-decoration: underline;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  font-weight: 600;
-  transition: color 0.3s ease;
-  padding: 0;
-  margin-left: 0.3rem;
+  font-weight: 700;
+  text-decoration: underline;
+  transition: all 0.3s ease;
 }
 
 .toggle-link:hover {
-  color: rgba(200, 200, 255, 1);
+  color: #ffffff;
 }
 
 .btn-close {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: -50px;
+  right: 0;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  font-size: 1.5rem;
   cursor: pointer;
-  transition: all 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  font-size: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1001;
-}
-
-.btn-close.flipped {
-  transform: rotateY(180deg);
-}
-
-.btn-close:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
-}
-
-.btn-close.flipped:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: rotateY(180deg) rotate(90deg);
-}
-
-
-/* Transitions */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-fade-enter,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-fade-enter-active .auth-modal,
-.modal-fade-leave-active .auth-modal {
   transition: all 0.3s ease;
 }
 
-.modal-fade-enter .auth-modal,
-.modal-fade-leave-to .auth-modal {
-  transform: scale(0.9);
-  opacity: 0;
+.btn-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
+@media (max-width: 768px) {
+  .auth-modal-flip-container {
+    width: 100%;
+    max-width: 350px;
+  }
+
+  .landing-page h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 2rem 1rem;
+  }
 }
 </style>
-
