@@ -250,6 +250,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import type { Ref } from 'vue'
 
 interface Props {
   currentUser: string
@@ -272,10 +273,10 @@ const addProductMode = ref(false)
 const selectedDetail = ref<string | null>(null)
 
 // Live Counter Animation
-const displayCount1 = ref(0)
-const displayCount2 = ref(0)
-const displayCount3 = ref(0)
-const displayCount4 = ref(0)
+const displayCount1: Ref<number> = ref(0)
+const displayCount2: Ref<number> = ref(0)
+const displayCount3: Ref<number> = ref(0)
+const displayCount4: Ref<number> = ref(0)
 
 // Sample alerts - später wird das vom Backend kommen
 const alerts = ref<Alert[]>([
@@ -298,7 +299,10 @@ const alerts = ref<Alert[]>([
 ])
 
 const userName = computed(() => {
-  return props.currentUser.split('@')[0]
+  // Safeguard: props.currentUser könnte leer sein
+  const email = props.currentUser ?? ''
+  const parts = email.split('@')
+  return parts[0] || email || 'Benutzer'
 })
 
 const currentDate = computed(() => {
@@ -325,12 +329,13 @@ const closeDetailView = () => {
 }
 
 // Animate Counter Numbers on Mount
-const animateCounter = (targetValue: number, displayRef: any, duration: number = 1500) => {
+const animateCounter = (targetValue: number, displayRef: Ref<number>, duration: number = 1500) => {
   const startTime = Date.now()
 
   const updateCount = () => {
     const elapsed = Date.now() - startTime
-    const progress = Math.min(elapsed / duration, 0.1)
+    // Correct clamp: max progress value should be 1 (100%)
+    const progress = Math.min(elapsed / duration, 1)
 
     // Easing function (ease-out)
     const easeProgress = 1 - Math.pow(1 - progress, 3)
@@ -367,6 +372,15 @@ onMounted(() => {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
   overflow: hidden;
+}
+
+/* Global CSS variable defaults to satisfy PostCSS resolver (prevents "Cannot resolve '--value'" errors) */
+:root {
+  --value: 0;
+  --width: 50%;
+  --percentage: 1;
+  --color: #64C8FF;
+  --progress: 0;
 }
 
 .scroll-container {
@@ -744,7 +758,8 @@ onMounted(() => {
 
 .chart-bar {
   width: 60px;
-  height: calc(var(--value) * 1px);
+  /* Fallback: var(--value, 0) falls die CSS-Variable nicht gesetzt ist */
+  height: calc((var(--value, 0) * 1px));
   background: linear-gradient(180deg, var(--color) 0%, var(--color) 50%, rgba(255, 255, 255, 0.15) 100%);
   border-radius: 12px 12px 0 0;
   position: relative;
@@ -818,7 +833,8 @@ onMounted(() => {
 .bar-segment {
   height: 100%;
   background: linear-gradient(90deg, var(--color) 0%, var(--color) 50%, rgba(255, 255, 255, 0.2) 100%);
-  width: var(--width);
+  /* Fallback width in case --width is not defined */
+  width: var(--width, 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -855,7 +871,8 @@ onMounted(() => {
 
 .stacked-item {
   background: linear-gradient(180deg, var(--color) 0%, var(--color) 50%, rgba(255, 255, 255, 0.15) 100%);
-  flex: var(--percentage);
+  /* Fallback flex value falls --percentage nicht gesetzt ist */
+  flex: var(--percentage, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -918,20 +935,20 @@ onMounted(() => {
 
 /* Animierte Säulen beim Hover */
 .stat-card:hover .chart-bar {
-  height: calc(var(--value) * 1.15px);
+  height: calc((var(--value, 0) * 1.15px));
   box-shadow: 0 0 60px var(--color), 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* Animierte Balkenbreite beim Hover */
 .stat-card:hover .bar-segment {
-  width: calc(var(--width) * 1.2);
+  width: calc((var(--width, 50%) * 1.2));
   box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.15), 0 0 50px var(--color);
   filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.4));
 }
 
 /* Animierte gestapelte Balken beim Hover */
 .stat-card:hover .stacked-item {
-  box-shadow: 0 0 50px var(--color), inset 0 0 25px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 50px var(--color), inset 0 0 25px rgba(255, 255, 255, 0.15);
   transform: scale(1.08);
   filter: brightness(1.2);
 }
@@ -1561,4 +1578,6 @@ onMounted(() => {
   text-shadow: 0 0 10px rgba(100, 200, 255, 0.3);
 }
 </style>
+
+
 

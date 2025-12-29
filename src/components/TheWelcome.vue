@@ -513,7 +513,9 @@ const startCubeAnimation = () => {
 
     setTimeout(() => {
       // Wechsle Text
-      currentSlogan.value = slogans[currentSloganIndex.value]
+      // Sicherer Zugriff: falls undefined, nutze leeren String
+      const next = slogans[currentSloganIndex.value]
+      currentSlogan.value = (typeof next === 'string') ? next : ''
       currentSloganIndex.value = (currentSloganIndex.value + 1) % slogans.length
 
       // Fade in
