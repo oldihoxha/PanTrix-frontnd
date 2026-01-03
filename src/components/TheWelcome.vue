@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import HomeView from './HomeView.vue'
 import * as THREE from 'three'
@@ -7,6 +7,7 @@ import * as THREE from 'three'
 const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 const products = ref<any[]>([])
 const isLoading = ref(false)
+
 
 // Login/Registrierungs-States
 const showAuthModal = ref(false)
@@ -48,17 +49,13 @@ const slogans = [
   'Sei nachhaltig'
 ]
 
-// Explosion Animation States
-const isExplosionMode = ref(false)
-const explosionDuration = 2000 // 2 Sekunden
-const explosionStartTime = ref(0)
 
 const createRealisticApple = (x: number, y: number, vx: number = 0, vy: number = 0, scale: number = 1.0) => {
   // Apfel als detaillierte Kugel mit Stieldetails
   const appleGroup = new THREE.Group()
 
-  // Hauptkörper - rote Kugel mit realistischen Materialien
-  const sphereGeometry = new THREE.SphereGeometry(APPLE_RADIUS, 64, 64)
+  // Hauptkörper - rote Kugel mit realistischen Materialien (optimiert)
+  const sphereGeometry = new THREE.SphereGeometry(APPLE_RADIUS, 32, 32)  // Reduziert von 64
 
   const appleMaterial = new THREE.MeshStandardMaterial({
     color: 0xdc3545,  // Natürliches, sattes Rot
@@ -71,8 +68,8 @@ const createRealisticApple = (x: number, y: number, vx: number = 0, vy: number =
   })
 
   const sphere = new THREE.Mesh(sphereGeometry, appleMaterial)
-  sphere.castShadow = true
-  sphere.receiveShadow = true
+  sphere.castShadow = false
+  sphere.receiveShadow = false
   // Stelle sicher, dass der Apfel immer uniform skaliert ist (keine Verzerrung)
   sphere.scale.set(1, 1, 1)
   appleGroup.add(sphere)
@@ -86,8 +83,8 @@ const createRealisticApple = (x: number, y: number, vx: number = 0, vy: number =
   })
   const stem = new THREE.Mesh(stemGeometry, stemMaterial)
   stem.position.y = APPLE_RADIUS + 2
-  stem.castShadow = true
-  stem.receiveShadow = true
+  stem.castShadow = false
+  stem.receiveShadow = false
   appleGroup.add(stem)
 
   // Blatt
@@ -160,6 +157,124 @@ const createRealisticApple = (x: number, y: number, vx: number = 0, vy: number =
   return appleObj
 }
 
+const BROCCOLI_HEIGHT = 150
+const BROCCOLI_WIDTH = 110
+
+const createRealisticBroccoli = (x: number, y: number, vx: number = 0, vy: number = 0, scale: number = 1.0) => {
+  // Brokkoli als komplexe Struktur mit Florets und Stengel
+  const broccoliGroup = new THREE.Group()
+
+  // Stengel (Hauptachse)
+  const stemGeometry = new THREE.CylinderGeometry(12, 15, BROCCOLI_HEIGHT * 0.4, 8)
+  const stemMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2d5016,  // Dunkles, natürliches Grün
+    metalness: 0,
+    roughness: 0.7,
+    emissive: 0x1a3009,
+    emissiveIntensity: 0.03
+  })
+  const stem = new THREE.Mesh(stemGeometry, stemMaterial)
+  stem.position.y = -BROCCOLI_HEIGHT * 0.15
+  stem.castShadow = true
+  stem.receiveShadow = true
+  broccoliGroup.add(stem)
+
+  // Florets Material
+  const floretMaterial: THREE.MeshStandardMaterial = new THREE.MeshStandardMaterial({
+    color: 0x4a7c2c,  // Lebendiges, realistisches Grün
+    metalness: 0.03,
+    roughness: 0.6,
+    emissive: 0x2d5016,
+    emissiveIntensity: 0.05,
+    flatShading: false
+  })
+
+  // Große zentrale Florets (oben)
+  const mainFloretPositions: Array<{pos: [number, number, number], size: number}> = [
+    { pos: [0, BROCCOLI_HEIGHT * 0.3, 0], size: 1.2 },
+    { pos: [-BROCCOLI_WIDTH * 0.2, BROCCOLI_HEIGHT * 0.15, -BROCCOLI_WIDTH * 0.15], size: 1.0 },
+    { pos: [BROCCOLI_WIDTH * 0.2, BROCCOLI_HEIGHT * 0.15, -BROCCOLI_WIDTH * 0.15], size: 1.0 },
+    { pos: [-BROCCOLI_WIDTH * 0.15, BROCCOLI_HEIGHT * 0.1, BROCCOLI_WIDTH * 0.2], size: 0.95 },
+    { pos: [BROCCOLI_WIDTH * 0.15, BROCCOLI_HEIGHT * 0.1, BROCCOLI_WIDTH * 0.2], size: 0.95 }
+  ]
+
+  mainFloretPositions.forEach(floret => {
+    const floretGeometry = new THREE.SphereGeometry(25 * floret.size, 48, 48)
+    const floretMesh = new THREE.Mesh(floretGeometry, floretMaterial)
+    floretMesh.position.set(floret.pos[0], floret.pos[1], floret.pos[2])
+    floretMesh.castShadow = true
+    floretMesh.receiveShadow = true
+    floretMesh.scale.set(0.9, 1.0, 0.9)  // Leicht verformt für organisches Aussehen
+    broccoliGroup.add(floretMesh)
+  })
+
+  // Kleinere, detailliertere Florets (Struktur)
+  const smallFloretGeometry = new THREE.SphereGeometry(15, 32, 32)
+  const smallFloretPositions: [number, number, number][] = [
+    [-BROCCOLI_WIDTH * 0.25, BROCCOLI_HEIGHT * 0.25, 0],
+    [BROCCOLI_WIDTH * 0.25, BROCCOLI_HEIGHT * 0.25, 0],
+    [0, BROCCOLI_HEIGHT * 0.2, BROCCOLI_WIDTH * 0.15],
+    [0, BROCCOLI_HEIGHT * 0.2, -BROCCOLI_WIDTH * 0.15],
+    [-BROCCOLI_WIDTH * 0.1, BROCCOLI_HEIGHT * 0.05, BROCCOLI_WIDTH * 0.1],
+    [BROCCOLI_WIDTH * 0.1, BROCCOLI_HEIGHT * 0.05, BROCCOLI_WIDTH * 0.1]
+  ]
+
+  smallFloretPositions.forEach(pos => {
+    const floret = new THREE.Mesh(smallFloretGeometry, floretMaterial)
+    floret.position.set(pos[0], pos[1], pos[2])
+    floret.castShadow = true
+    floret.receiveShadow = true
+    broccoliGroup.add(floret)
+  })
+
+  // Glanzpunkte für Realismus und Frische
+  const shineGeometry = new THREE.SphereGeometry(20, 32, 32)
+  const shineMaterial = new THREE.MeshStandardMaterial({
+    color: 0x8fbc8f,  // Helleres Grün für Glanz
+    metalness: 0.6,
+    roughness: 0.15,
+    emissive: 0xaaffaa,
+    emissiveIntensity: 0.25,
+    transparent: true,
+    opacity: 0.7
+  })
+
+  const shine1 = new THREE.Mesh(shineGeometry, shineMaterial)
+  shine1.position.set(-15, BROCCOLI_HEIGHT * 0.25, 20)
+  shine1.scale.set(0.5, 0.6, 0.4)
+  broccoliGroup.add(shine1)
+
+  const shine2 = new THREE.Mesh(shineGeometry, shineMaterial)
+  shine2.position.set(20, BROCCOLI_HEIGHT * 0.15, -15)
+  shine2.scale.set(0.45, 0.5, 0.35)
+  broccoliGroup.add(shine2)
+
+  broccoliGroup.position.set(x, y, 0)
+  broccoliGroup.scale.set(scale, scale, scale)
+
+  scene.add(broccoliGroup)
+
+  const broccoliObj = {
+    type: 'broccoli',
+    group: broccoliGroup,
+    x: x,
+    y: y,
+    z: 0,
+    vx: vx,
+    vy: vy,
+    vz: 0,
+    radius: BROCCOLI_WIDTH * 0.5 * scale,
+    resting: false,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 0,
+    scale: scale
+  }
+
+  apples.push(broccoliObj)
+  return broccoliObj
+}
+
 
 const init3DScene = () => {
   const container = document.querySelector('.hero-section') as HTMLElement
@@ -190,16 +305,15 @@ const init3DScene = () => {
   camera.lookAt(0, 0, 0)
 
   // Renderer mit besseren Einstellungen
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, precision: 'mediump' })
   // begrenze pixel ratio für Performance/Stabilität
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
   // setSize und update style zusammen
   renderer.setSize(window.innerWidth, window.innerHeight, true)
   // explizit CSS-Größen setzen, damit Canvas-Style und drawing buffer übereinstimmen
   renderer.domElement.style.width = `${window.innerWidth}px`
   renderer.domElement.style.height = `${window.innerHeight}px`
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap  // Weichere Schatten
+  renderer.shadowMap.enabled = false  // Deaktiviere Schatten für bessere Performance
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.1  // Leicht erhöht für Premium-Look
 
@@ -207,30 +321,18 @@ const init3DScene = () => {
   if (canvas) container.removeChild(canvas)
   container.insertBefore(renderer.domElement, container.firstChild)
 
-  // Premium Studio-Beleuchtung für hochwertigen Look
-  const ambientLight = new THREE.AmbientLight(0xf0f0ff, 0.3)  // Kühler, subtiler Ambient
+  // Premium Studio-Beleuchtung optimiert für Performance
+  const ambientLight = new THREE.AmbientLight(0xf0f0ff, 0.4)  // Kühler, subtiler Ambient
   scene.add(ambientLight)
 
   // Hauptlicht von oben (kühl-weiß für Premium-Look)
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0)
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
   directionalLight.position.set(200, 700, 400)
-  directionalLight.castShadow = true
-  directionalLight.shadow.mapSize.width = 2048
-  directionalLight.shadow.mapSize.height = 2048
-  directionalLight.shadow.camera.left = -600
-  directionalLight.shadow.camera.right = 600
-  directionalLight.shadow.camera.top = 600
-  directionalLight.shadow.camera.bottom = -600
-  directionalLight.shadow.bias = -0.0001
+  directionalLight.castShadow = false  // Deaktiviert für Performance
   scene.add(directionalLight)
 
-  // Fülllicht von der Seite (kühles Blau für Tiefe)
-  const fillLight = new THREE.DirectionalLight(0x88bbff, 0.35)
-  fillLight.position.set(-400, 250, 300)
-  scene.add(fillLight)
-
   // Akzentlicht von hinten (Cyan für modernen Look)
-  const rimLight = new THREE.DirectionalLight(0x66ddff, 0.4)
+  const rimLight = new THREE.DirectionalLight(0x66ddff, 0.3)
   rimLight.position.set(0, 250, -400)
   scene.add(rimLight)
 
@@ -248,20 +350,370 @@ const init3DScene = () => {
   floor.receiveShadow = true
   scene.add(floor)
 
+  // Erstelle schwebende Emojis statt 3D-Objekte
+  const emojiList = ['🍎', '🍌', '🥕', '🐟', '🥩', '🥬', '🍊', '🥦', '🧅', '🍅', '🫒', '🥔']
+  const emojiContainer = document.createElement('div')
+  emojiContainer.id = 'emoji-container'
+  emojiContainer.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 7;
+    pointer-events: none;
+  `
+  container.appendChild(emojiContainer)
+  console.log('Emoji Container created and added to container')
 
-  // Erstelle 5 schwebende Äpfel mit verschiedenen Startpositionen und Größen
-  // Langsame Weltraum-Geschwindigkeiten für schwebendes Gefühl
-  const applePositions = [
-    { x: -viewportWidthWorld * 0.3, y: viewportHeightWorld * 0.2, vx: 0.4, vy: -0.3, scale: 0.8 },
-    { x: viewportWidthWorld * 0.25, y: viewportHeightWorld * 0.1, vx: -0.35, vy: 0.45, scale: 1.2 },
-    { x: -viewportWidthWorld * 0.15, y: -viewportHeightWorld * 0.15, vx: 0.3, vy: 0.4, scale: 1.0 },
-    { x: viewportWidthWorld * 0.35, y: -viewportHeightWorld * 0.25, vx: -0.5, vy: -0.35, scale: 1.4 },
-    { x: 0, y: viewportHeightWorld * 0.3, vx: 0.45, vy: 0.3, scale: 0.9 }
+  // Sunset Fire Palette
+  const staticPalette = { name: 'Sunset Fire', light: '#FF6B1A', dark: '#FF1744', shadow: 'rgba(255, 23, 68, 0.4)', darkShadow: 'rgba(255, 23, 68, 0.2)' }
+
+  for (let i = 0; i < 3; i++) {
+    const streak = document.createElement('div')
+    const yPos = 25 + i * 30 // 25%, 55%, 85%
+
+    streak.style.cssText = `
+      position: fixed;
+      top: ${yPos}%;
+      left: 0;
+      width: 100vw;
+      height: 2px;
+      pointer-events: none;
+      z-index: 6;
+      transform-origin: left center;
+      transform: scaleX(0);
+      will-change: transform, background, box-shadow;
+      filter: blur(0.5px);
+    `
+    container.appendChild(streak)
+
+    // Animation für diesen Lichtstreifen
+    let startTime: number | null = null
+    const delay = i * 1.2
+
+    const animateStreak = (currentTime: number) => {
+      if (!startTime) startTime = currentTime
+
+      const elapsedTime = (currentTime - startTime)
+      const progress = Math.min(elapsedTime / 3000, 1) // 3 Sekunden Animation
+
+      streak.style.transform = `scaleX(${progress})`
+
+      if (progress < 1) {
+        requestAnimationFrame(animateStreak)
+      }
+    }
+
+    // Starte Animation mit statischer Farbe
+    setTimeout(() => {
+      streak.style.background = `linear-gradient(to right, transparent, ${staticPalette.light}, ${staticPalette.dark}, ${staticPalette.light}, transparent)`
+      streak.style.boxShadow = `0 0 20px ${staticPalette.light}, 0 0 50px ${staticPalette.dark}, 0 0 80px ${staticPalette.dark}, 0 0 120px ${staticPalette.dark}, 0 0 150px ${staticPalette.shadow}, 0 0 200px ${staticPalette.darkShadow}`
+
+      requestAnimationFrame(animateStreak)
+    }, delay * 1000)
+  }
+
+  // Erstelle 4 vertikale Lichtstreifen - STATISCHE FARBE
+  for (let i = 0; i < 4; i++) {
+    const verticalStreak = document.createElement('div')
+    const xPos = 20 + i * 20 // 20%, 40%, 60%, 80%
+
+    verticalStreak.style.cssText = `
+      position: fixed;
+      left: ${xPos}%;
+      top: 0;
+      width: 2px;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 6;
+      transform-origin: top center;
+      transform: scaleY(0);
+      will-change: transform, background, box-shadow;
+      filter: blur(0.5px);
+    `
+    container.appendChild(verticalStreak)
+
+    // Animation für diesen Lichtstreifen
+    let startTimeVertical: number | null = null
+    const delayVertical = i * 1.0
+
+    const animateVerticalStreak = (currentTime: number) => {
+      if (!startTimeVertical) startTimeVertical = currentTime
+
+      const elapsedTime = (currentTime - startTimeVertical)
+      const progress = Math.min(elapsedTime / 3000, 1) // 3 Sekunden Animation
+
+      verticalStreak.style.transform = `scaleY(${progress})`
+
+      if (progress < 1) {
+        requestAnimationFrame(animateVerticalStreak)
+      }
+    }
+
+    // Starte Animation mit statischer Farbe
+    setTimeout(() => {
+      verticalStreak.style.background = `linear-gradient(to bottom, transparent, ${staticPalette.light}, ${staticPalette.dark}, ${staticPalette.light}, transparent)`
+      verticalStreak.style.boxShadow = `0 0 20px ${staticPalette.light}, 0 0 50px ${staticPalette.dark}, 0 0 80px ${staticPalette.dark}, 0 0 120px ${staticPalette.dark}, 0 0 150px ${staticPalette.shadow}, 0 0 200px ${staticPalette.darkShadow}`
+
+      requestAnimationFrame(animateVerticalStreak)
+    }, delayVertical * 1000)
+  }
+
+  // Erstelle 3 große radiale Gradients - SUNSET FIRE PALETTE
+  const gradientConfigs = [
+    {
+      name: 'bottom-left',
+      startX: 0.2,
+      startY: 0.8,
+      offsetX: 0.15,
+      offsetY: 0.15,
+      colors: ['rgba(255, 107, 26, 0.8)', 'rgba(255, 23, 68, 0.6)', 'rgba(255, 23, 68, 0.2)', 'transparent'],
+      size: 700
+    },
+    {
+      name: 'bottom-center',
+      startX: 0.5,
+      startY: 0.7,
+      offsetX: 0.12,
+      offsetY: 0.12,
+      colors: ['rgba(255, 107, 26, 0.9)', 'rgba(255, 50, 80, 0.6)', 'rgba(255, 50, 80, 0.2)', 'transparent'],
+      size: 750
+    },
+    {
+      name: 'bottom-right',
+      startX: 0.8,
+      startY: 0.8,
+      offsetX: 0.15,
+      offsetY: 0.15,
+      colors: ['rgba(255, 23, 68, 0.8)', 'rgba(255, 10, 50, 0.6)', 'rgba(255, 10, 50, 0.2)', 'transparent'],
+      size: 700
+    }
   ]
 
-  applePositions.forEach(pos => {
-    createRealisticApple(pos.x, pos.y, pos.vx, pos.vy, pos.scale)
+  gradientConfigs.forEach((config) => {
+    const glowField = document.createElement('div')
+
+    const startX = window.innerWidth * config.startX
+    const startY = window.innerHeight * config.startY
+
+    // Erstelle Gradient-String
+    const gradientStops = config.colors.map((color) => {
+      const percent = (config.colors.indexOf(color) / (config.colors.length - 1)) * 100
+      return `${color} ${percent}%`
+    }).join(', ')
+
+    glowField.style.cssText = `
+      position: fixed;
+      width: ${config.size}px;
+      height: ${config.size}px;
+      left: ${startX}px;
+      top: ${startY}px;
+      background: radial-gradient(circle, ${gradientStops});
+      pointer-events: none;
+      z-index: 5;
+      filter: blur(80px);
+      opacity: 0.8;
+      margin-left: -${config.size / 2}px;
+      margin-top: -${config.size / 2}px;
+    `
+    container.appendChild(glowField)
   })
+
+
+  // Erstelle Emojis mit verschiedenen Positionen und realistischen Größen
+  const emojis = emojiList.map((emoji, index) => {
+    const emojiEl = document.createElement('div')
+    const x = Math.random() * (window.innerWidth - 100) // Platz für größte Emoji
+    const y = Math.random() * (window.innerHeight - 100) // Platz für größte Emoji
+    const vx = (Math.random() - 0.5) * 1.5
+    const vy = (Math.random() - 0.5) * 1.5
+
+    // Realistische Größen basierend auf Produkt - GRÖSSER gemacht
+    let size = 80 // Default erhöht
+
+    if (emoji === '🍌') {
+      size = 100 + Math.random() * 30
+    } else if (emoji === '🥕') {
+      size = 90 + Math.random() * 25
+    } else if (emoji === '🥦') {
+      size = 95 + Math.random() * 25
+    } else if (emoji === '🥩') {
+      size = 100 + Math.random() * 30
+    } else if (emoji === '🍎') {
+      size = 90 + Math.random() * 25
+    } else if (emoji === '🍊') {
+      size = 85 + Math.random() * 25
+    } else if (emoji === '🥬') {
+      size = 95 + Math.random() * 25
+    } else if (emoji === '🐟') {
+      size = 90 + Math.random() * 30
+    } else if (emoji === '🧅') {
+      size = 75 + Math.random() * 20
+    } else if (emoji === '🍅') {
+      size = 70 + Math.random() * 20
+    } else if (emoji === '🥔') {
+      size = 85 + Math.random() * 25
+    } else if (emoji === '🫒') {
+      size = 60 + Math.random() * 20
+    }
+
+    emojiEl.textContent = emoji
+    emojiEl.style.cssText = `
+      position: fixed;
+      font-size: ${size}px;
+      left: ${x}px;
+      top: ${y}px;
+      z-index: 7;
+      pointer-events: none;
+      user-select: none;
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      width: auto;
+      height: auto;
+      line-height: 1;
+      white-space: nowrap;
+      color: rgba(255, 255, 255, 0.7);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      filter: grayscale(100%)
+              saturate(0%)
+              drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15))
+              brightness(0.95)
+              contrast(1.1);
+      animation: float 3s ease-in-out infinite;
+    `
+    emojiContainer.appendChild(emojiEl)
+    console.log(`Created glass emoji: ${emoji} at (${x}, ${y}) with size ${size}px`)
+
+    return {
+      element: emojiEl,
+      x: x,
+      y: y,
+      vx: vx,
+      vy: vy,
+      size: size,
+      radius: size / 2,
+      emoji: emoji,
+      colored: false
+    }
+  });
+
+  // Sequentielle Einfärbungs-Animation - LANGSAMER
+  let coloringIndex = 0
+  const coloringInterval = setInterval(() => {
+    if (coloringIndex < emojis.length) {
+      const emoji = emojis[coloringIndex]!
+      // Animiere die Einfärbung über 2 Sekunden (langsamer)
+      const startTime = performance.now()
+      const animateColoring = (currentTime: number) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / 2000, 1) // 2 Sekunden Animation (vorher 1)
+
+        // Interpoliere von grayscale zu farbig
+        const saturation = progress * 100
+        emoji.element.style.filter = `grayscale(${100 - saturation}%)
+                saturate(${saturation}%)
+                drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15))
+                brightness(0.95)
+                contrast(1.1)`
+
+        if (progress < 1) {
+          requestAnimationFrame(animateColoring)
+        } else {
+          emoji.colored = true
+        }
+      }
+      requestAnimationFrame(animateColoring)
+      coloringIndex++
+    } else {
+      clearInterval(coloringInterval)
+    }
+  }, 600) // Alle 600ms das nächste Emoji einfärben (vorher 300ms)
+
+  // Anime Emojis
+  let emojiAnimationFrame: number | null = null
+  const animateEmojis = () => {
+    emojiAnimationFrame = requestAnimationFrame(animateEmojis)
+
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const damping = 0.95
+
+    emojis.forEach((emoji, i) => {
+      // Update position
+      emoji.x += emoji.vx
+      emoji.y += emoji.vy
+
+      // Bounce off walls - emoji.x und emoji.y sind die linke obere Ecke
+      // Grenzen: Emoji darf von 0 bis (width - size) gehen (horizontal)
+      //          und von 0 bis (height - size) gehen (vertikal)
+
+      if (emoji.x < 0) {
+        emoji.vx *= -damping
+        emoji.x = 0
+      } else if (emoji.x + emoji.size > width) {
+        emoji.vx *= -damping
+        emoji.x = width - emoji.size
+      }
+
+      if (emoji.y < 0) {
+        emoji.vy *= -damping
+        emoji.y = 0
+      } else if (emoji.y + emoji.size > height) {
+        emoji.vy *= -damping
+        emoji.y = height - emoji.size
+      }
+
+      // Collision detection with other emojis
+      for (let j = i + 1; j < emojis.length; j++) {
+        const other = emojis[j]!
+        const dx = other.x - emoji.x
+        const dy = other.y - emoji.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const minDist = emoji.radius + other.radius
+
+        if (dist < minDist) {
+          // Elastic collision
+          const angle = Math.atan2(dy, dx)
+          const sin = Math.sin(angle)
+          const cos = Math.cos(angle)
+
+          // Velocities in collision-frame
+          const vx1 = emoji.vx * cos + emoji.vy * sin
+          const vy1 = emoji.vy * cos - emoji.vx * sin
+          const vx2 = other.vx * cos + other.vy * sin
+          const vy2 = other.vy * cos - other.vx * sin
+
+          // Swap velocities (equal mass)
+          const vx1Final = vx2
+          const vx2Final = vx1
+
+          // Convert back to world frame
+          emoji.vx = vx1Final * cos - vy1 * sin
+          emoji.vy = vy1 * cos + vx1Final * sin
+          other.vx = vx2Final * cos - vy2 * sin
+          other.vy = vy2 * cos + vx2Final * sin
+
+          // Separate overlapping objects
+          const overlap = minDist - dist
+          const moveX = (overlap / 2) * cos
+          const moveY = (overlap / 2) * sin
+          emoji.x -= moveX
+          emoji.y -= moveY
+          other.x += moveX
+          other.y += moveY
+        }
+      }
+
+      // Update element position
+      emoji.element.style.left = `${emoji.x}px`
+      emoji.element.style.top = `${emoji.y}px`
+    })
+  }
+
+  animateEmojis()
 
   // Starte die Haupt-Animationsschleife
   animate3D()
@@ -270,116 +722,12 @@ const init3DScene = () => {
 const animate3D = () => {
   animationFrameId = requestAnimationFrame(animate3D)
 
-  // Normale Physik-Phase (Äpfel schweben frei)
+  // Keine 3D-Objekt-Animation mehr - Emojis werden mit separater Funktion animiert
 
-  // Physik-Update für jeden Apfel (schwebend, keine Schwerkraft)
-  apples.forEach((apple) => {
-    // Stelle sicher, dass die korrekte individuelle Skalierung erhalten bleibt
-    if (apple.group && apple.scale) apple.group.scale.set(apple.scale, apple.scale, apple.scale)
-    if (apple.mesh) apple.mesh.scale.set(1, 1, 1)
-
-    // Keine Schwerkraft - Äpfel schweben frei
-    // Keine resting-Logik mehr
-
-    // Minimale Reibung (Weltraum-Effekt: fast keine Dämpfung)
-    apple.vx *= 0.9995  // Extrem geringe Reibung für schwebendes Gefühl
-    apple.vy *= 0.9995
-    apple.vz *= 0.9995
-
-    // Position updaten
-    apple.x += apple.vx
-    apple.y += apple.vy
-    apple.z += apple.vz
-
-    // Rotation basierend auf Bewegung (immer)
-    apple.rotationX += apple.vz * 0.005
-    apple.rotationY += apple.vx * 0.005
-    apple.rotationZ += apple.vy * 0.005
-
-    // Alle 4 Grenzen (Bounce an allen Seiten) - Äpfel bleiben im sichtbaren Bereich
-    if (apple.x - apple.radius < -viewportWidthWorld / 2) {
-      apple.x = -viewportWidthWorld / 2 + apple.radius
-      apple.vx *= -BOUNCE_DAMPING
-    }
-    if (apple.x + apple.radius > viewportWidthWorld / 2) {
-      apple.x = viewportWidthWorld / 2 - apple.radius
-      apple.vx *= -BOUNCE_DAMPING
-    }
-
-    if (apple.y - apple.radius < -viewportHeightWorld / 2) {
-      apple.y = -viewportHeightWorld / 2 + apple.radius
-      apple.vy *= -BOUNCE_DAMPING
-    }
-    if (apple.y + apple.radius > viewportHeightWorld / 2) {
-      apple.y = viewportHeightWorld / 2 - apple.radius
-      apple.vy *= -BOUNCE_DAMPING
-    }
-
-    // Mesh Position & Rotation updaten
-    apple.group.position.set(apple.x, apple.y, apple.z)
-
-    // Rotation für Äpfel (nur Mesh rotiert, nicht die Gruppe)
-    if (apple.type === 'apple') {
-      apple.mesh.rotation.x = apple.rotationX
-      apple.mesh.rotation.y = apple.rotationY
-      apple.mesh.rotation.z = apple.rotationZ
-    }
-  })
-
-  // Kollisionserkennung zwischen Äpfeln - wie ursprüngliche Spheren mit Abstoßung
-  for (let i = 0; i < apples.length; i++) {
-    for (let j = i + 1; j < apples.length; j++) {
-      const a1 = apples[i]
-      const a2 = apples[j]
-
-      // Beide sind Spheres (Apfel) - präzise Sphere-Sphere Kollision
-      const dx = a2.x - a1.x
-      const dy = a2.y - a1.y
-      const dz = a2.z - a1.z
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
-
-      // Exakte Radien für perfekte Berührung
-      const minDistance = a1.radius + a2.radius
-
-      if (distance < minDistance && distance > 0.01) {
-        // Kollision detektiert
-        const nx = dx / distance
-        const ny = dy / distance
-        const nz = dz / distance
-        const overlap = minDistance - distance
-
-        // Stärkere Separation für deutliche Abstoßung (wie Spheren)
-        const separationForce = overlap / 1.5  // War /2.0, jetzt stärker
-
-        a1.x -= nx * separationForce
-        a1.y -= ny * separationForce
-        a1.z -= nz * separationForce
-        a2.x += nx * separationForce
-        a2.y += ny * separationForce
-        a2.z += nz * separationForce
-
-        // Sanfte elastische Kollision für Weltraum-Effekt
-        const dvx = a2.vx - a1.vx
-        const dvy = a2.vy - a1.vy
-        const dvz = a2.vz - a1.vz
-        const dotProduct = dvx * nx + dvy * ny + dvz * nz
-
-        if (dotProduct < 0) {
-          const impulse = -dotProduct * 1.2  // Etwas mehr Abstoßung (war 0.5)
-
-          a1.vx -= impulse * nx
-          a1.vy -= impulse * ny
-          a1.vz -= impulse * nz
-          a2.vx += impulse * nx
-          a2.vy += impulse * ny
-          a2.vz += impulse * nz
-        }
-      }
-    }
-  }
-
+  // Rendern
   renderer.render(scene, camera)
 }
+
 
 const onWindowResize = () => {
   if (!camera || !renderer) return
@@ -451,6 +799,31 @@ const logout = () => {
   password.value = ''
   passwordConfirm.value = ''
   errorMessage.value = ''
+
+  // Stelle sicher, dass die Landing Page alle Animationen neu startet
+  nextTick(() => {
+    // Reset slogan animation
+    currentSloganIndex.value = 0
+    currentSlogan.value = ''
+
+    // Stoppe alte Animation und starte neu
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId)
+    }
+
+    // Reinitialize 3D scene
+    if (renderer) {
+      renderer.dispose()
+    }
+    apples = []
+
+    // Starte alles neu
+    setTimeout(() => {
+      init3DScene()
+      startCubeAnimation()
+      animate3D()
+    }, 100)
+  })
 }
 
 const handleLogin = () => {
@@ -507,31 +880,56 @@ const handleRegister = () => {
 const startCubeAnimation = () => {
   isScaling.value = true
 
+  const typeSlogan = (text: string, callback: () => void) => {
+    let index = 0
+    currentSlogan.value = ''
+
+    const typeChar = () => {
+      if (index < text.length) {
+        currentSlogan.value += text[index]
+        index++
+        setTimeout(typeChar, 50) // 50ms pro Zeichen (normal typing speed)
+      } else {
+        // Text ist komplett getippt - warte 2 Sekunden und lösche dann
+        setTimeout(() => {
+          deleteSlogan(callback)
+        }, 2000)
+      }
+    }
+
+    typeChar()
+  }
+
+  const deleteSlogan = (callback: () => void) => {
+    const length = currentSlogan.value.length
+    let index = length
+
+    const deleteChar = () => {
+      if (index > 0) {
+        currentSlogan.value = currentSlogan.value.slice(0, index - 1)
+        index--
+        setTimeout(deleteChar, 30) // 30ms pro Zeichen (schneller löschen)
+      } else {
+        callback()
+      }
+    }
+
+    deleteChar()
+  }
+
   const showNextSlogan = () => {
-    // Fade out
-    isFading.value = true
+    const next = slogans[currentSloganIndex.value] || ''
+    currentSloganIndex.value = (currentSloganIndex.value + 1) % slogans.length
 
-    setTimeout(() => {
-      // Wechsle Text
-      // Sicherer Zugriff: falls undefined, nutze leeren String
-      const next = slogans[currentSloganIndex.value]
-      currentSlogan.value = (typeof next === 'string') ? next : ''
-      currentSloganIndex.value = (currentSloganIndex.value + 1) % slogans.length
-
-      // Fade in
-      isFading.value = false
-
-      // Nächsten Slogan nach 3 Sekunden anzeigen
-      setTimeout(showNextSlogan, 3000)
-    }, 500) // Fade-Dauer
+    typeSlogan(next, () => {
+      // Nach Löschen - nächsten Slogan nach 500ms anzeigen
+      setTimeout(showNextSlogan, 500)
+    })
   }
 
   showNextSlogan()
 }
 
-const stopCubeAnimation = () => {
-  isScaling.value = false
-}
 
 onMounted(() => {
   loadProducts()
@@ -572,6 +970,7 @@ onUnmounted(() => {
       <nav class="nav-links">
         <button v-if="!isLoggedIn" class="nav-button">Über uns</button>
         <button v-if="!isLoggedIn" class="nav-button">Features</button>
+
         <button v-if="!isLoggedIn" class="nav-button" @click="openAuthModal" style="margin-left: auto;">Anmelden</button>
 
         <!-- Profil Section wenn angemeldet -->
@@ -792,8 +1191,25 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
+:root {
+  --ocean-primary: #00a8e8;
+  --ocean-secondary: #00c9e8;
+  --ocean-accent: #00e5ff;
+  --ocean-dark: #001f3f;
+  --ocean-light: #e0f4ff;
+  --ocean-glow: #00b8e6;
+
+  --current-primary: var(--ocean-primary);
+  --current-secondary: var(--ocean-secondary);
+  --current-accent: var(--ocean-accent);
+  --current-dark: var(--ocean-dark);
+  --current-light: var(--ocean-light);
+  --current-glow: var(--ocean-glow);
+}
+
 .landing-page {
-  background: #000000;
+  background: linear-gradient(135deg, #001f3f 0%, #003d66 25%, #00548a 50%, #003d66 75%, #001f3f 100%);
+  background-attachment: fixed;
   width: 100%;
   height: 100vh;
   display: flex;
@@ -801,6 +1217,7 @@ onUnmounted(() => {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
   overflow: hidden;
+  color: white;
 }
 
 /* Three.js Canvas - Fixed auf dem Viewport, scrollt nicht mit der Seite */
@@ -808,7 +1225,7 @@ onUnmounted(() => {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  z-index: 5 !important;
+  z-index: 3 !important;
   width: 100% !important;
   height: 100vh !important;
   pointer-events: none !important;
@@ -830,6 +1247,7 @@ onUnmounted(() => {
   right: 0;
   z-index: 40;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
 .logo-container {
@@ -854,7 +1272,7 @@ onUnmounted(() => {
   font-weight: 800;
   color: #ffffff;
   letter-spacing: 1px;
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -869,15 +1287,66 @@ onUnmounted(() => {
 .nav-button {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  letter-spacing: 0.3px;
 }
+
+.nav-button:hover {
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* Theme Switch */
+.theme-switch-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.theme-switch-input {
+  display: none;
+}
+
+.theme-switch-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 60px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  padding: 0 8px;
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1);
+}
+
+.theme-switch-label:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.2), 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+/* Slider Circle */
+.theme-switch-slider {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  background: #ffffff;
+  border-radius: 50%;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
 
 .nav-button:hover {
   color: #ffffff;
@@ -1008,16 +1477,13 @@ onUnmounted(() => {
   margin-bottom: 4rem;
   font-weight: 900;
   letter-spacing: 2px;
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  transition: all 0.3s ease;
 }
 
 /* Typing Text - smaller than h1 */
 .typing-text {
   font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.7);
   text-align: center;
   font-weight: 500;
   letter-spacing: 1.5px;
@@ -1049,14 +1515,14 @@ onUnmounted(() => {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 25px;
   padding: 3rem 1.5rem;
   text-align: center;
-  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
   position: relative;
   overflow: hidden;
   min-height: 350px;
@@ -1075,9 +1541,10 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--current-primary), transparent);
   border-radius: 25px 25px 0 0;
+  animation: smoothLightStreak 4s ease-in-out infinite;
 }
 
 .feature-card::after {
@@ -1087,7 +1554,7 @@ onUnmounted(() => {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, var(--current-glow), transparent);
   border-radius: 25px;
   z-index: -1;
   opacity: 0;
@@ -1097,12 +1564,14 @@ onUnmounted(() => {
 
 .feature-card:hover {
   transform: translateY(-15px);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(35px);
   -webkit-backdrop-filter: blur(35px);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.25),
-    0 0 35px rgba(255, 255, 255, 0.08),
     inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  animation: pulseGlow 1.5s ease-in-out infinite;
 }
 
 .feature-card:hover::after {
@@ -1120,12 +1589,14 @@ onUnmounted(() => {
   color: #ffffff;
   margin-bottom: 1rem;
   font-weight: 700;
+  transition: color 0.3s ease;
 }
 
 .feature-card p {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 /* Steps Container */
@@ -1141,10 +1612,10 @@ onUnmounted(() => {
 .step {
   flex: 1;
   min-width: 250px;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 20px;
   padding: 2rem;
   text-align: center;
@@ -1203,7 +1674,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, rgba(173, 216, 255, 0.3), rgba(255, 105, 180, 0.3));
+  background: rgba(255, 255, 255, 0.08);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   font-size: 2rem;
@@ -1241,11 +1712,11 @@ onUnmounted(() => {
 .upcoming-feature {
   margin-top: 3rem;
   padding: 1.5rem 2rem;
-  background: rgba(144, 238, 144, 0.08);
-  border: 1px solid rgba(144, 238, 144, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 15px;
   text-align: center;
-  color: rgba(144, 238, 144, 0.9);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.95rem;
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -1253,8 +1724,9 @@ onUnmounted(() => {
 }
 
 .upcoming-feature:hover {
-  background: rgba(144, 238, 144, 0.08);
-  border-color: rgba(144, 238, 144, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
   transform: translateY(-2px);
 }
 
@@ -1285,11 +1757,14 @@ onUnmounted(() => {
   color: #ffffff;
   margin-bottom: 1rem;
   font-weight: 700;
+  transition: color 0.3s ease;
 }
 
 .footer-section p {
   font-size: 0.9rem;
   line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.3s ease;
 }
 
 .footer-section ul {
@@ -1317,22 +1792,23 @@ onUnmounted(() => {
   padding-top: 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
 }
 
 /* Glass Container */
 .glass-container {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 50px;
   padding: 4rem 5rem;
   box-shadow:
     0 4px 15px rgba(0, 0, 0, 0.08),
     inset 0 1px 1px rgba(255, 255, 255, 0.15);
   min-width: auto;
-  max-width: 1200px; /* Erhöht von 900px auf 1200px für breitere Darstellung */
+  max-width: 1200px;
   position: relative;
   z-index: 12;
   transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -1360,20 +1836,6 @@ onUnmounted(() => {
   filter: blur(8px);
 }
 
-/* .glass-container:hover {
-  transform: translateY(-10px);
-  backdrop-filter: blur(35px);
-  -webkit-backdrop-filter: blur(35px);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.2),
-    0 0 40px rgba(255, 255, 255, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.25);
-}
-
-.glass-container:hover::before {
-  opacity: 1;
-} */
-
 .landing-page h1 {
   font-size: 5.5rem;
   color: #ffffff;
@@ -1382,17 +1844,10 @@ onUnmounted(() => {
   letter-spacing: 3px;
   margin: 0 auto 1.5rem auto;
   padding: 0;
-  text-shadow:
-    0 4px 30px rgba(0, 0, 0, 0.3),
-    0 0 60px rgba(255, 255, 255, 0.15);
-  background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 50%, #d0d0d0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.12));
+  text-shadow: none;
   animation: slideInDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   line-height: 1.2;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 
 /* Hero Subtitle */
@@ -1444,11 +1899,70 @@ onUnmounted(() => {
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+/* 🌟 Smooth Light Streak Animationen - PanTrix Grün */
+@keyframes smoothLightStreak {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 168, 232, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(0, 168, 232, 0.7),
+                inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes glowShimmer {
+  0% {
+    text-shadow: 0 0 10px rgba(0, 168, 232, 0.6),
+                 0 0 20px rgba(0, 168, 232, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(0, 168, 232, 0.8),
+                 0 0 40px rgba(0, 168, 232, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 10px rgba(0, 168, 232, 0.6),
+                 0 0 20px rgba(0, 168, 232, 0.3);
+  }
+}
+
+
 .btn-login {
   margin-top: 2.5rem;
   padding: 1.2rem 3.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
   border-radius: 30px;
   font-size: 1.1rem;
@@ -1456,6 +1970,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
   letter-spacing: 1px;
@@ -1463,6 +1978,8 @@ onUnmounted(() => {
   margin-left: auto;
   margin-right: auto;
   display: block;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .btn-login::before {
@@ -1472,21 +1989,26 @@ onUnmounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent);
+  animation: smoothLightStreak 3s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .btn-login:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-5px);
   box-shadow:
-    0 10px 30px rgba(255, 255, 255, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    0 15px 40px rgba(255, 255, 255, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  animation: pulseGlow 1s ease-in-out infinite;
 }
 
-.btn-login:hover::before {
-  left: 100%;
+.btn-login:active {
+  transform: translateY(-2px);
 }
 
 /* Auth Modal */
@@ -1513,12 +2035,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  transition: background-color 0.3s ease;
 }
 
 .auth-modal-flip-container {
   position: relative;
-  width: 400px;
-  height: 500px;
+  width: 480px;
+  height: 600px;
 }
 
 .auth-modal-flipper {
@@ -1539,8 +2062,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  position: relative;
-  width: 100%;
 }
 
 .auth-modal-front {
@@ -1556,16 +2077,17 @@ onUnmounted(() => {
 
 .auth-modal-front.glass,
 .auth-modal-back.glass {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 30px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .auth-form {
-  padding: 2.5rem;
+  padding: 3.5rem;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1581,7 +2103,7 @@ onUnmounted(() => {
 }
 
 .auth-subtitle {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   text-align: center;
   margin-bottom: 2rem;
   font-size: 0.9rem;
@@ -1593,7 +2115,7 @@ onUnmounted(() => {
 
 .form-group label {
   display: block;
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff;
   margin-bottom: 0.5rem;
   font-weight: 600;
   font-size: 0.9rem;
@@ -1614,12 +2136,12 @@ onUnmounted(() => {
 .input-field:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(0, 0, 0, 0.4);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .input-field::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .error-message {
@@ -1649,7 +2171,7 @@ onUnmounted(() => {
 
 .btn-submit:hover {
   background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 0, 0, 0.3);
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
@@ -1720,4 +2242,5 @@ onUnmounted(() => {
     padding: 2rem 1rem;
   }
 }
+
 </style>

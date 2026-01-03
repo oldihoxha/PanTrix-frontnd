@@ -8,6 +8,9 @@
         </div>
       </div>
       <nav class="nav-links">
+        <button class="notifications-btn-top" title="Benachrichtigungen">
+          <span class="notification-icon">🔔</span>
+        </button>
         <div class="profile-section">
           <div class="profile-icon">👤</div>
           <span class="profile-email">{{ currentUser }}</span>
@@ -16,8 +19,9 @@
       </nav>
     </header>
 
-    <!-- Main Content -->
-    <div class="scroll-container">
+    <!-- Main Content with Right Sidebar -->
+    <div class="content-wrapper">
+      <div class="scroll-container">
       <!-- Hero Section -->
       <section class="section hero-section">
         <h1>Willkommen, {{ userName }}! </h1>
@@ -48,7 +52,7 @@
               <div class="ring-container">
                 <svg class="progress-ring" viewBox="0 0 200 200">
                   <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 75;"/>
+                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 75; --color: #FFD700;"/>
                 </svg>
                 <div class="ring-value">
                   <span class="ring-number">{{ displayCount1 }}</span>
@@ -64,7 +68,7 @@
               <div class="ring-container">
                 <svg class="progress-ring" viewBox="0 0 200 200">
                   <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 60; --color: #FF9090;"/>
+                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 60; --color: #00FF88;"/>
                 </svg>
                 <div class="ring-value">
                   <span class="ring-number">{{ displayCount2 }}</span>
@@ -80,7 +84,7 @@
               <div class="ring-container">
                 <svg class="progress-ring" viewBox="0 0 200 200">
                   <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 25; --color: #FFB464;"/>
+                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 25; --color: #FF6B35;"/>
                 </svg>
                 <div class="ring-value">
                   <span class="ring-number">{{ displayCount3 }}</span>
@@ -96,7 +100,7 @@
               <div class="ring-container">
                 <svg class="progress-ring" viewBox="0 0 200 200">
                   <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 82; --color: #64C8FF;"/>
+                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 82; --color: #00D4FF;"/>
                 </svg>
                 <div class="ring-value">
                   <span class="ring-number">{{ displayCount4 }}</span>
@@ -212,25 +216,6 @@
       </section>
 
       <!-- Other Actions -->
-      <section class="section other-actions-section">
-        <div class="section-content">
-          <h2>Weitere Funktionen</h2>
-          <div class="action-buttons">
-            <button class="action-btn add-product-btn" @click="addProductMode = true">
-              <span class="action-icon">➕</span>
-              <span class="action-text">Neues Produkt</span>
-            </button>
-            <button class="action-btn notifications-btn">
-              <span class="action-icon">🔔</span>
-              <span class="action-text">Benachrichtigungen</span>
-            </button>
-            <button class="action-btn stats-btn">
-              <span class="action-icon">📊</span>
-              <span class="action-text">Statistiken</span>
-            </button>
-          </div>
-        </div>
-      </section>
 
       <!-- Footer -->
       <footer class="footer">
@@ -244,6 +229,66 @@
           <p>&copy; 2025 PanTrix. Alle Rechte vorbehalten.</p>
         </div>
       </footer>
+    </div>
+
+    <!-- Right Sidebar with Tips & Suggestions -->
+    <aside class="right-sidebar">
+      <!-- Tip of the Day -->
+      <div class="sidebar-card tip-card">
+        <div class="card-header">
+          <span class="card-icon">💡</span>
+          <h4>Tipp des Tages</h4>
+        </div>
+        <p class="card-content">Lagern Sie Äpfel separat von anderen Früchten - sie setzen Ethylen frei, das andere Früchte schneller reifen lässt!</p>
+      </div>
+
+      <!-- Food Suggestions -->
+      <div class="sidebar-card suggestion-card">
+        <div class="card-header">
+          <span class="card-icon">🥬</span>
+          <h4>Lebensmittel-Vorschläge</h4>
+        </div>
+        <div class="suggestion-list">
+          <div class="suggestion-item">
+            <span class="item-emoji">🥦</span>
+            <span class="item-text">Verwenden Sie Ihr Brokkoli</span>
+            <span class="item-date">bis 15.01</span>
+          </div>
+          <div class="suggestion-item">
+            <span class="item-emoji">🥕</span>
+            <span class="item-text">Karotten verbrauchen</span>
+            <span class="item-date">bis 18.01</span>
+          </div>
+          <div class="suggestion-item">
+            <span class="item-emoji">🥛</span>
+            <span class="item-text">Milch bald ablaufend</span>
+            <span class="item-date">bis 10.01</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recipe Suggestion -->
+      <div class="sidebar-card recipe-card">
+        <div class="card-header">
+          <span class="card-icon">🍳</span>
+          <h4>Rezept-Vorschlag</h4>
+        </div>
+        <p class="card-content"><strong>Gemüsestir-Fry</strong> - Machen Sie ein leckeres Stir-Fry mit Ihrem Brokkoli, Karotten und Paprika. Perfekt um Lebensmittel zu verwerten!</p>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="sidebar-card links-card">
+        <div class="card-header">
+          <span class="card-icon">🔗</span>
+          <h4>Quick Links</h4>
+        </div>
+        <div class="links-list">
+          <a href="#" class="quick-link">❓ FAQ</a>
+          <a href="#" class="quick-link">📧 Support</a>
+          <a href="#" class="quick-link">💬 Feedback</a>
+        </div>
+      </div>
+    </aside>
     </div>
   </div>
 </template>
@@ -366,12 +411,29 @@ onMounted(() => {
 .home-page {
   background: #000000;
   width: 100%;
-  height: 100vh;
+  height: auto;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  color: #ffffff;
+}
+
+/* Sehr leichte Gradient-Lichtstrahlen im Hintergrund */
+.home-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    linear-gradient(90deg, transparent 15%, rgba(255, 215, 0, 0.015) 50%, transparent 85%),
+    linear-gradient(180deg, transparent 25%, rgba(255, 215, 0, 0.01) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Global CSS variable defaults to satisfy PostCSS resolver (prevents "Cannot resolve '--value'" errors) */
@@ -383,9 +445,20 @@ onMounted(() => {
   --progress: 0;
 }
 
+/* Content Wrapper - Main Content + Right Sidebar */
+.content-wrapper {
+  display: flex;
+  flex: 1;
+  gap: 2rem;
+  padding: 2rem;
+  position: relative;
+  z-index: 2;
+  height: calc(100vh - 100px);
+}
+
 .scroll-container {
   flex: 1;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -393,21 +466,144 @@ onMounted(() => {
   min-height: 0;
 }
 
-.scroll-container::-webkit-scrollbar {
-  width: 8px;
+/* Right Sidebar - STICKY - BLEIBT OBEN BEIM SCROLLEN */
+.right-sidebar {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.8rem;
+  padding-bottom: 2rem;
+  position: sticky;
+  top: 2rem;
+  z-index: 2;
+  max-height: calc(100vh - 140px);
+  scroll-behavior: smooth;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  padding: 1.8rem;
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.08);
 }
 
-.scroll-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+.right-sidebar:hover {
+  box-shadow: 0 12px 40px rgba(255, 215, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.1);
 }
 
-.scroll-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+.right-sidebar::-webkit-scrollbar {
+  width: 10px;
 }
 
-.scroll-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+.right-sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  margin: 10px 0;
+}
+
+.right-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.right-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.45);
+}
+
+/* Sidebar Cards - ELEGANT & FILMY */
+.sidebar-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 215, 0, 0.12);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 2.5rem;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-card::before {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.sidebar-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at top, rgba(255, 215, 0, 0.015) 0%, transparent 80%);
+  pointer-events: none;
+  border-radius: 24px;
+}
+
+.sidebar-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 12px 48px rgba(255, 215, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Card Header - ELEGANT & FILMY */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.12);
+  transition: all 0.3s ease;
+}
+
+.card-icon {
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 55px;
+  height: 55px;
+  background: rgba(255, 215, 0, 0.08);
+  border-radius: 14px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.sidebar-card:hover .card-icon {
+  background: rgba(255, 215, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.08);
+}
+
+.card-header h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #FFE66D;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
+  transition: all 0.3s ease;
+}
+
+/* Card Content - ELEGANT */
+.card-content {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.9;
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 /* Top Bar */
@@ -445,6 +641,53 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+}
+
+/* Notifications Button - Top Bar */
+.notifications-btn-top {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+.notifications-btn-top:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.notification-icon {
+  display: block;
+  animation: bellRing 2s ease-in-out infinite;
+}
+
+@keyframes bellRing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(15deg);
+  }
+  30% {
+    transform: rotate(-15deg);
+  }
+  45% {
+    transform: rotate(15deg);
+  }
+  60% {
+    transform: rotate(0deg);
+  }
 }
 
 .profile-section {
@@ -528,9 +771,27 @@ onMounted(() => {
 
 .hero-section {
   background: #000000;
-  padding-top: 100px;
-  padding-bottom: 4rem;
+  padding: 3rem 2rem;
   text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  height: 80%;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .hero-section h1 {
@@ -539,10 +800,12 @@ onMounted(() => {
   font-weight: 900;
   letter-spacing: 2px;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 50%, #d0d0d0 100%);
+  background: linear-gradient(135deg, #FFE66D 0%, #FFD700 50%, #DAA520 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  position: relative;
+  z-index: 1;
 }
 
 .home-subtitle {
@@ -550,6 +813,8 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 1px;
   margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .home-tagline {
@@ -646,7 +911,7 @@ onMounted(() => {
 
 .stats-visualization-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 2.5rem;
   margin-top: 2rem;
 }
@@ -1301,15 +1566,6 @@ onMounted(() => {
   border-color: rgba(255, 180, 100, 0.5);
 }
 
-.stats-btn {
-  border-color: rgba(200, 100, 255, 0.3);
-}
-
-.stats-btn:hover {
-  background: rgba(200, 100, 255, 0.1);
-  border-color: rgba(200, 100, 255, 0.5);
-}
-
 /* Features Section */
 .features-section {
   background: #000000;
@@ -1424,11 +1680,11 @@ onMounted(() => {
   stroke-dashoffset: calc(565.48 - (565.48 * var(--progress) / 100));
   stroke-linecap: round;
   transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 0 20px var(--color, #64C8FF));
+  filter: drop-shadow(0 0 25px var(--color, #64C8FF)) drop-shadow(0 0 50px var(--color, #64C8FF));
 }
 
 .stat-card:hover .ring-progress {
-  filter: drop-shadow(0 0 40px var(--color, #64C8FF));
+  filter: drop-shadow(0 0 40px var(--color, #64C8FF)) drop-shadow(0 0 70px var(--color, #64C8FF));
   stroke-width: 14;
 }
 
@@ -1447,12 +1703,12 @@ onMounted(() => {
   font-size: 2.2rem;
   font-weight: 900;
   color: #ffffff;
-  text-shadow: 0 0 15px rgba(100, 200, 255, 0.4);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
 }
 
 .ring-label {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
 }
 
