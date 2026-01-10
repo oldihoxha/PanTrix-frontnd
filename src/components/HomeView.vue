@@ -29,14 +29,9 @@
         <p class="home-tagline">{{ currentDate }}</p>
       </section>
 
-      <!-- MyPantry - Main Feature -->
+      <!-- MyPantry - Modern Pantry Interface -->
       <section class="section my-pantry-section">
-        <button class="my-pantry-hero-btn" @click="showMyPantry = true">
-          <span class="pantry-icon">📋</span>
-          <span class="pantry-title">Meine Vorratskammer</span>
-          <span class="pantry-description">Verwalte deine Lebensmittel</span>
-          <span class="pantry-arrow">→</span>
-        </button>
+        <PantryInterfaceModal />
       </section>
 
       <!-- Quick Stats with Progress Rings -->
@@ -44,70 +39,130 @@
         <div class="section-content">
           <h2>Statistiken</h2>
 
-          <!-- Stats Grid -->
-          <div class="stats-visualization-grid">
-            <!-- Total Products - Progress Ring -->
-            <div class="stat-card stat-card-ring" @click="openDetailView('total')">
-              <h3>Produkte gesamt</h3>
-              <div class="ring-container">
-                <svg class="progress-ring" viewBox="0 0 200 200">
-                  <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 75; --color: #FFD700;"/>
-                </svg>
-                <div class="ring-value">
-                  <span class="ring-number">{{ displayCount1 }}</span>
-                  <span class="ring-label">Gesamt</span>
+          <!-- Stats Widgets Grid -->
+          <div class="stats-widgets-grid">
+            <!-- Row 1 -->
+            <!-- Categories Widget (Left) -->
+            <div class="stat-widget widget-categories">
+              <h3>Kategorien</h3>
+              <div class="categories-list">
+                <div class="category-item">
+                  <span class="cat-name">Gemüse</span>
+                  <span class="cat-count">8</span>
+                </div>
+                <div class="category-item">
+                  <span class="cat-name">Obst</span>
+                  <span class="cat-count">6</span>
+                </div>
+                <div class="category-item">
+                  <span class="cat-name">Milchprodukte</span>
+                  <span class="cat-count">5</span>
+                </div>
+                <div class="category-item">
+                  <span class="cat-name">Fleisch & Fisch</span>
+                  <span class="cat-count">5</span>
                 </div>
               </div>
-              <p class="stat-description">Klick für Details</p>
             </div>
 
-            <!-- Saved Products - Progress Ring -->
-            <div class="stat-card stat-card-ring" @click="openDetailView('saved')">
-              <h3>Lebensmittel gerettet</h3>
-              <div class="ring-container">
-                <svg class="progress-ring" viewBox="0 0 200 200">
-                  <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 60; --color: #00FF88;"/>
-                </svg>
-                <div class="ring-value">
-                  <span class="ring-number">{{ displayCount2 }}</span>
-                  <span class="ring-label">Gerettet</span>
+            <!-- Total Products Widget (Large Center) -->
+            <div class="stat-widget widget-large widget-total">
+              <h3>Gesamte Produkte</h3>
+              <div class="widget-main-content">
+                <div class="big-number">{{ displayCount1 }}</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 75%"></div>
                 </div>
+                <p class="widget-subtitle">75% Kapazität genutzt</p>
               </div>
-              <p class="stat-description">Klick für Details</p>
             </div>
 
-            <!-- Expiring Soon - Progress Ring -->
-            <div class="stat-card stat-card-ring" @click="openDetailView('expiring')">
+            <!-- Saved Products Widget (Right) -->
+            <div class="stat-widget widget-saved">
+              <h3>Gerettete Produkte</h3>
+              <div class="widget-main-content">
+                <div class="medium-number">{{ displayCount2 }}</div>
+                <p class="widget-subtitle">vor Verschwendung bewahrt</p>
+                <div class="progress-indicator">↑ +20%</div>
+              </div>
+            </div>
+
+            <!-- Expiring Soon Widget (Small Right) -->
+            <div class="stat-widget widget-small widget-expiring">
               <h3>Bald ablaufend</h3>
-              <div class="ring-container">
-                <svg class="progress-ring" viewBox="0 0 200 200">
-                  <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 25; --color: #FF6B35;"/>
-                </svg>
-                <div class="ring-value">
-                  <span class="ring-number">{{ displayCount3 }}</span>
-                  <span class="ring-label">Heute-7 Tage</span>
-                </div>
+              <div class="widget-main-content">
+                <div class="small-number">{{ displayCount3 }}</div>
+                <p class="widget-subtitle">in den nächsten 7 Tagen</p>
               </div>
-              <p class="stat-description">Klick für Details</p>
             </div>
 
-            <!-- This Week - Progress Ring -->
-            <div class="stat-card stat-card-ring" @click="openDetailView('week')">
-              <h3>Diese Woche</h3>
-              <div class="ring-container">
-                <svg class="progress-ring" viewBox="0 0 200 200">
-                  <circle cx="100" cy="100" r="90" class="ring-background"/>
-                  <circle cx="100" cy="100" r="90" class="ring-progress" style="--progress: 82; --color: #00D4FF;"/>
-                </svg>
-                <div class="ring-value">
-                  <span class="ring-number">{{ displayCount4 }}</span>
-                  <span class="ring-label">Produkte</span>
+            <!-- Row 2 -->
+            <!-- Storage Widget (Left) -->
+            <div class="stat-widget widget-storage">
+              <h3>Lagerbestände</h3>
+              <div class="storage-chart-wrapper">
+                <div class="y-axis">
+                  <span class="y-label">100%</span>
+                  <span class="y-label">75%</span>
+                  <span class="y-label">50%</span>
+                  <span class="y-label">25%</span>
+                  <span class="y-label">0%</span>
+                </div>
+                <div class="chart-container">
+                  <div class="chart-grid"></div>
+                  <div class="bars-container">
+                    <div class="bar-wrapper">
+                      <div class="bar" style="height: 80%;"></div>
+                    </div>
+                    <div class="bar-wrapper">
+                      <div class="bar" style="height: 60%;"></div>
+                    </div>
+                    <div class="bar-wrapper">
+                      <div class="bar" style="height: 50%;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="x-axis">
+                  <span class="x-label">Gemüse</span>
+                  <span class="x-label">Obst</span>
+                  <span class="x-label">Milch</span>
                 </div>
               </div>
-              <p class="stat-description">Klick für Details</p>
+            </div>
+
+            <!-- Week Overview Widget (Large Right) -->
+            <div class="stat-widget widget-large widget-week">
+              <h3>Produktkategorien Übersicht</h3>
+              <div class="category-list-compact">
+                <div class="category-list-item">
+                  <div class="category-info">
+                    <span class="category-name">Gemüse</span>
+                    <span class="category-value">8</span>
+                  </div>
+                  <div class="category-bar-small" style="width: 65%;"></div>
+                </div>
+                <div class="category-list-item">
+                  <div class="category-info">
+                    <span class="category-name">Obst</span>
+                    <span class="category-value">6</span>
+                  </div>
+                  <div class="category-bar-small" style="width: 48%;"></div>
+                </div>
+                <div class="category-list-item">
+                  <div class="category-info">
+                    <span class="category-name">Milchprodukte</span>
+                    <span class="category-value">5</span>
+                  </div>
+                  <div class="category-bar-small" style="width: 40%;"></div>
+                </div>
+                <div class="category-list-item">
+                  <div class="category-info">
+                    <span class="category-name">Fleisch & Fisch</span>
+                    <span class="category-value">5</span>
+                  </div>
+                  <div class="category-bar-small" style="width: 40%;"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -230,65 +285,6 @@
         </div>
       </footer>
     </div>
-
-    <!-- Right Sidebar with Tips & Suggestions -->
-    <aside class="right-sidebar">
-      <!-- Tip of the Day -->
-      <div class="sidebar-card tip-card">
-        <div class="card-header">
-          <span class="card-icon">💡</span>
-          <h4>Tipp des Tages</h4>
-        </div>
-        <p class="card-content">Lagern Sie Äpfel separat von anderen Früchten - sie setzen Ethylen frei, das andere Früchte schneller reifen lässt!</p>
-      </div>
-
-      <!-- Food Suggestions -->
-      <div class="sidebar-card suggestion-card">
-        <div class="card-header">
-          <span class="card-icon">🥬</span>
-          <h4>Lebensmittel-Vorschläge</h4>
-        </div>
-        <div class="suggestion-list">
-          <div class="suggestion-item">
-            <span class="item-emoji">🥦</span>
-            <span class="item-text">Verwenden Sie Ihr Brokkoli</span>
-            <span class="item-date">bis 15.01</span>
-          </div>
-          <div class="suggestion-item">
-            <span class="item-emoji">🥕</span>
-            <span class="item-text">Karotten verbrauchen</span>
-            <span class="item-date">bis 18.01</span>
-          </div>
-          <div class="suggestion-item">
-            <span class="item-emoji">🥛</span>
-            <span class="item-text">Milch bald ablaufend</span>
-            <span class="item-date">bis 10.01</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recipe Suggestion -->
-      <div class="sidebar-card recipe-card">
-        <div class="card-header">
-          <span class="card-icon">🍳</span>
-          <h4>Rezept-Vorschlag</h4>
-        </div>
-        <p class="card-content"><strong>Gemüsestir-Fry</strong> - Machen Sie ein leckeres Stir-Fry mit Ihrem Brokkoli, Karotten und Paprika. Perfekt um Lebensmittel zu verwerten!</p>
-      </div>
-
-      <!-- Quick Links -->
-      <div class="sidebar-card links-card">
-        <div class="card-header">
-          <span class="card-icon">🔗</span>
-          <h4>Quick Links</h4>
-        </div>
-        <div class="links-list">
-          <a href="#" class="quick-link">❓ FAQ</a>
-          <a href="#" class="quick-link">📧 Support</a>
-          <a href="#" class="quick-link">💬 Feedback</a>
-        </div>
-      </div>
-    </aside>
     </div>
   </div>
 </template>
@@ -296,6 +292,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { Ref } from 'vue'
+import PantryInterfaceModal from './PantryInterfaceModal.vue'
 
 interface Props {
   currentUser: string
@@ -403,7 +400,77 @@ onMounted(() => {
   setTimeout(() => animateCounter(18, displayCount2), 500)
   setTimeout(() => animateCounter(6, displayCount3), 700)
   setTimeout(() => animateCounter(13, displayCount4), 900)
+
+  // Erstelle animierte Lichtstrahlen und Glow-Effekte wie in TheWelcome
+  createGradientEffects()
 })
+
+// Gradient-Effekte für HomeView.vue
+const createGradientEffects = () => {
+  const container = document.querySelector('.home-page') as HTMLElement
+  if (!container) return
+
+
+  // Erstelle 3 große radiale Gradients (Glow-Effekte)
+  const gradientConfigs = [
+    {
+      name: 'bottom-left',
+      startX: 0.2,
+      startY: 0.8,
+      offsetX: 0.15,
+      offsetY: 0.15,
+      colors: ['rgba(255, 64, 64, 0.8)', 'rgba(255, 46, 46, 0.6)', 'rgba(255, 46, 46, 0.2)', 'transparent'],
+      size: 700
+    },
+    {
+      name: 'bottom-center',
+      startX: 0.5,
+      startY: 0.7,
+      offsetX: 0.12,
+      offsetY: 0.12,
+      colors: ['rgba(255, 64, 64, 0.9)', 'rgba(255, 48, 48, 0.6)', 'rgba(255, 48, 48, 0.2)', 'transparent'],
+      size: 750
+    },
+    {
+      name: 'bottom-right',
+      startX: 0.8,
+      startY: 0.8,
+      offsetX: 0.15,
+      offsetY: 0.15,
+      colors: ['rgba(255, 46, 46, 0.8)', 'rgba(255, 32, 32, 0.6)', 'rgba(255, 32, 32, 0.2)', 'transparent'],
+      size: 700
+    }
+  ]
+
+  gradientConfigs.forEach((config) => {
+    const glowField = document.createElement('div')
+
+    const startX = window.innerWidth * config.startX
+    const startY = window.innerHeight * config.startY
+
+    // Erstelle Gradient-String
+    const gradientStops = config.colors.map((color) => {
+      const percent = (config.colors.indexOf(color) / (config.colors.length - 1)) * 100
+      return `${color} ${percent}%`
+    }).join(', ')
+
+    glowField.style.cssText = `
+      position: fixed;
+      width: ${config.size}px;
+      height: ${config.size}px;
+      left: ${startX}px;
+      top: ${startY}px;
+      background: radial-gradient(circle, ${gradientStops});
+      pointer-events: none;
+      z-index: 1;
+      filter: blur(80px);
+      opacity: 0.8;
+      margin-left: -${config.size / 2}px;
+      margin-top: -${config.size / 2}px;
+    `
+    container.appendChild(glowField)
+  })
+}
 </script>
 
 <style scoped>
@@ -419,6 +486,19 @@ onMounted(() => {
   position: relative;
   overflow-x: hidden;
   color: #ffffff;
+}
+
+/* Home Page Background Pseudo-Element für schwarzen Hintergrund */
+.home-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* Sehr leichte Gradient-Lichtstrahlen im Hintergrund */
@@ -462,149 +542,10 @@ onMounted(() => {
   overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  background: #000000;
+  background: transparent;
   min-height: 0;
 }
 
-/* Right Sidebar - STICKY - BLEIBT OBEN BEIM SCROLLEN */
-.right-sidebar {
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 0.8rem;
-  padding-bottom: 2rem;
-  position: sticky;
-  top: 2rem;
-  z-index: 2;
-  max-height: calc(100vh - 140px);
-  scroll-behavior: smooth;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  background: rgba(255, 255, 255, 0.012);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 215, 0, 0.1);
-  padding: 1.8rem;
-  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.08);
-}
-
-.right-sidebar:hover {
-  box-shadow: 0 12px 40px rgba(255, 215, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-}
-
-.right-sidebar::-webkit-scrollbar {
-  width: 10px;
-}
-
-.right-sidebar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 10px;
-  margin: 10px 0;
-}
-
-.right-sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.right-sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 215, 0, 0.45);
-}
-
-/* Sidebar Cards - ELEGANT & FILMY */
-.sidebar-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 215, 0, 0.12);
-  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 2.5rem;
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-}
-
-.sidebar-card::before {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-}
-
-.sidebar-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(ellipse at top, rgba(255, 215, 0, 0.015) 0%, transparent 80%);
-  pointer-events: none;
-  border-radius: 24px;
-}
-
-.sidebar-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 215, 0, 0.2);
-  box-shadow: 0 12px 48px rgba(255, 215, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.12);
-  transform: translateY(-1px);
-}
-
-/* Card Header - ELEGANT & FILMY */
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.12);
-  transition: all 0.3s ease;
-}
-
-.card-icon {
-  font-size: 2.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 55px;
-  height: 55px;
-  background: rgba(255, 215, 0, 0.08);
-  border-radius: 14px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.sidebar-card:hover .card-icon {
-  background: rgba(255, 215, 0, 0.12);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.08);
-}
-
-.card-header h4 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #FFE66D;
-  letter-spacing: 0.3px;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
-  transition: all 0.3s ease;
-}
-
-/* Card Content - ELEGANT */
-.card-content {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.82);
-  line-height: 1.9;
-  margin: 0;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-}
 
 /* Top Bar */
 .top-bar {
@@ -617,6 +558,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   z-index: 100;
+  position: sticky;
+  top: 0;
 }
 
 .logo-container {
@@ -770,7 +713,7 @@ onMounted(() => {
 }
 
 .hero-section {
-  background: #000000;
+  background: transparent;
   padding: 3rem 2rem;
   text-align: center;
   position: relative;
@@ -785,27 +728,24 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   width: 90%;
   height: 80%;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
   border-radius: 30px;
   z-index: -1;
   pointer-events: none;
 }
 
 .hero-section h1 {
-  font-size: 3.5rem;
-  color: #ffffff;
+  font-size: 4.5rem;
+  color: #FF4040;
   font-weight: 900;
   letter-spacing: 2px;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #FFE66D 0%, #FFD700 50%, #DAA520 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   position: relative;
   z-index: 1;
+  text-shadow: 0 2px 10px rgba(255, 64, 64, 0.3);
 }
 
 .home-subtitle {
@@ -824,8 +764,8 @@ onMounted(() => {
 
 /* MyPantry Section - Main Feature */
 .my-pantry-section {
-  background: #000000;
-  padding: 3rem 2rem;
+  background: transparent;
+  padding: 1rem 0;
 }
 
 .my-pantry-hero-btn {
@@ -864,11 +804,11 @@ onMounted(() => {
 }
 
 .my-pantry-hero-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(220, 53, 69, 0.12);
+  border-color: rgba(220, 53, 69, 0.4);
   transform: translateY(-8px);
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.1),
+    0 6px 20px rgba(220, 53, 69, 0.2),
     inset 0 1px 1px rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -905,59 +845,424 @@ onMounted(() => {
 
 /* Quick Stats Section */
 .quick-stats-section {
-  background: #000000;
+  background: transparent;
   padding: 4rem 2rem;
 }
 
-.stats-visualization-grid {
+/* Stats Widgets Grid - Modern Layout */
+.stats-widgets-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2.5rem;
+  grid-template-columns: 1fr 2fr 1.2fr 0.8fr;
+  grid-template-rows: auto auto;
+  gap: 2rem;
   margin-top: 2rem;
 }
 
-.stat-card {
-  background: rgba(255, 255, 255, 0.03);
+/* Base Widget Style */
+.stat-widget {
+  background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 25px;
-  padding: 2.5rem 2rem;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 1.2rem;
   position: relative;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
-/* Gradient Overlay für Tiefenwirkung */
-.stat-card::before {
+.stat-widget:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2),
+              inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+.stat-widget h3 {
+  font-size: 0.8rem;
+  color: #ffffff;
+  font-weight: 800;
+  margin-bottom: 0.8rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.stat-widget::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  border-radius: 24px 24px 0 0;
+}
+
+.stat-widget::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: radial-gradient(ellipse at top right, rgba(255, 255, 255, 0.08), transparent);
   pointer-events: none;
-  border-radius: 25px;
+  border-radius: 24px;
 }
 
-/* Top Light Line */
-.stat-card::after {
-  content: '';
+/* Categories Widget */
+.widget-categories {
+  grid-column: 1;
+  grid-row: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.category-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(2px);
+}
+
+.cat-name {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
+.cat-count {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  font-size: 0.85rem;
+  min-width: 25px;
+  text-align: right;
+}
+
+/* Total Products Widget - Large */
+.widget-large {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.widget-total {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.widget-total:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.widget-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.big-number {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  line-height: 1;
+}
+
+.medium-number {
+  font-size: 2rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.small-number {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: width 0.5s ease;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.widget-subtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.progress-indicator {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 800;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Saved Products Widget */
+.widget-saved {
+  grid-column: 3;
+  grid-row: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.widget-saved:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Expiring Widget - Small */
+.widget-small {
+  grid-column: 4;
+  grid-row: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.widget-small:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Storage Widget */
+.widget-storage {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.storage-bars {
+  display: none;
+}
+
+.storage-chart-wrapper {
+  display: flex;
+  gap: 0.8rem;
+  height: 120px;
+  align-items: flex-end;
+}
+
+.y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 100%;
+  padding-right: 0.6rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  width: 35px;
+  flex-shrink: 0;
+}
+
+.y-label {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+}
+
+.chart-grid {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  border-radius: 25px 25px 0 0;
+  bottom: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px,
+      transparent 25%
+    );
+  pointer-events: none;
+  border-radius: 4px;
 }
 
-.stat-card:hover {
+.bars-container {
+  display: flex;
+  gap: 0.8rem;
+  width: 100%;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.bar-wrapper {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
   background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-12px);
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+  border-radius: 6px 6px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: none;
+  padding: 0 0.4rem 0 0.4rem;
+}
+
+.bar {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 100%);
+  border-radius: 4px 4px 0 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+}
+
+.bar:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.35) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 12px rgba(255, 255, 255, 0.15);
+  filter: brightness(1.2);
+}
+
+.x-axis {
+  display: flex;
+  gap: 0;
+  margin-top: 0.6rem;
+  padding-left: 35px;
+  width: calc(100% - 35px);
+}
+
+.x-label {
+  flex: 1;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+
+/* Week Widget - Large */
+.widget-week {
+  grid-column: 3 / 5;
+  grid-row: 2;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.category-chart {
+  display: none;
+}
+
+.category-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.category-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.category-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.category-name {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 700;
+}
+
+.category-value {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  min-width: 20px;
+  text-align: right;
+}
+
+.category-bar-small {
+  flex: 1;
+  height: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.category-list-item:hover .category-bar-small {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.25));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .stats-widgets-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .widget-large {
+    grid-column: 1 / 3;
+  }
+
+  .widget-storage {
+    grid-column: 1 / 3;
+  }
+
+  .widget-week {
+    grid-column: 1 / 3;
+  }
 }
 
 /* Color-specific Glow Effects */
@@ -1251,10 +1556,10 @@ onMounted(() => {
 }
 
 .stats-visualization-grid .stat-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(220, 53, 69, 0.08);
+  border-color: rgba(220, 53, 69, 0.3);
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.1),
+    0 6px 20px rgba(220, 53, 69, 0.15),
     inset 0 1px 1px rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -1306,8 +1611,8 @@ onMounted(() => {
 }
 
 .mini-stat:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(220, 53, 69, 0.12);
+  border-color: rgba(220, 53, 69, 0.2);
 }
 
 .mini-label {
@@ -1350,7 +1655,7 @@ onMounted(() => {
 
 /* Alerts Section */
 .alerts-section {
-  background: #000000;
+  background: transparent;
   padding: 4rem 2rem;
 }
 
@@ -1475,13 +1780,13 @@ onMounted(() => {
 
 /* Other Actions Section */
 .other-actions-section {
-  background: #000000;
+  background: transparent;
   padding: 4rem 2rem;
 }
 
 /* Action Buttons */
 .section-content {
-  max-width: 1200px;
+  max-width: 1400px;
   width: 100%;
 }
 
@@ -1523,9 +1828,10 @@ onMounted(() => {
 }
 
 .action-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(220, 53, 69, 0.12);
+  border-color: rgba(220, 53, 69, 0.4);
   transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(220, 53, 69, 0.15);
 }
 
 .action-icon {
@@ -1540,40 +1846,40 @@ onMounted(() => {
 }
 
 .add-product-btn {
-  border-color: rgba(100, 200, 255, 0.3);
+  border-color: rgba(220, 53, 69, 0.3);
 }
 
 .add-product-btn:hover {
-  background: rgba(100, 200, 255, 0.1);
-  border-color: rgba(100, 200, 255, 0.5);
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.5);
 }
 
 .my-pantry-btn {
-  border-color: rgba(144, 238, 144, 0.3);
+  border-color: rgba(220, 53, 69, 0.3);
 }
 
 .my-pantry-btn:hover {
-  background: rgba(144, 238, 144, 0.1);
-  border-color: rgba(144, 238, 144, 0.5);
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.5);
 }
 
 .notifications-btn {
-  border-color: rgba(255, 180, 100, 0.3);
+  border-color: rgba(220, 53, 69, 0.3);
 }
 
 .notifications-btn:hover {
-  background: rgba(255, 180, 100, 0.1);
-  border-color: rgba(255, 180, 100, 0.5);
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.5);
 }
 
 /* Features Section */
 .features-section {
-  background: #000000;
+  background: transparent;
   padding: 6rem 2rem;
 }
 
 .how-it-works-section {
-  background: #000000;
+  background: transparent;
   padding: 6rem 2rem;
 }
 

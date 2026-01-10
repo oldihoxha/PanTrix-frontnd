@@ -366,8 +366,8 @@ const init3DScene = () => {
   container.appendChild(emojiContainer)
   console.log('Emoji Container created and added to container')
 
-  // Sunset Fire Palette
-  const staticPalette = { name: 'Sunset Fire', light: '#FF6B1A', dark: '#FF1744', shadow: 'rgba(255, 23, 68, 0.4)', darkShadow: 'rgba(255, 23, 68, 0.2)' }
+  // Sunset Fire Palette - Hellere Rot-Töne
+  const staticPalette = { name: 'Sunset Fire', light: '#FF4040', dark: '#FF2E2E', shadow: 'rgba(255, 46, 46, 0.4)', darkShadow: 'rgba(255, 46, 46, 0.2)' }
 
   for (let i = 0; i < 3; i++) {
     const streak = document.createElement('div')
@@ -460,7 +460,7 @@ const init3DScene = () => {
     }, delayVertical * 1000)
   }
 
-  // Erstelle 3 große radiale Gradients - SUNSET FIRE PALETTE
+  // Erstelle 3 große radiale Gradients -  ROT PALETTE
   const gradientConfigs = [
     {
       name: 'bottom-left',
@@ -468,7 +468,7 @@ const init3DScene = () => {
       startY: 0.8,
       offsetX: 0.15,
       offsetY: 0.15,
-      colors: ['rgba(255, 107, 26, 0.8)', 'rgba(255, 23, 68, 0.6)', 'rgba(255, 23, 68, 0.2)', 'transparent'],
+      colors: ['rgba(255, 64, 64, 0.8)', 'rgba(255, 46, 46, 0.6)', 'rgba(255, 46, 46, 0.2)', 'transparent'],
       size: 700
     },
     {
@@ -477,7 +477,7 @@ const init3DScene = () => {
       startY: 0.7,
       offsetX: 0.12,
       offsetY: 0.12,
-      colors: ['rgba(255, 107, 26, 0.9)', 'rgba(255, 50, 80, 0.6)', 'rgba(255, 50, 80, 0.2)', 'transparent'],
+      colors: ['rgba(255, 64, 64, 0.9)', 'rgba(255, 48, 48, 0.6)', 'rgba(255, 48, 48, 0.2)', 'transparent'],
       size: 750
     },
     {
@@ -486,7 +486,7 @@ const init3DScene = () => {
       startY: 0.8,
       offsetX: 0.15,
       offsetY: 0.15,
-      colors: ['rgba(255, 23, 68, 0.8)', 'rgba(255, 10, 50, 0.6)', 'rgba(255, 10, 50, 0.2)', 'transparent'],
+      colors: ['rgba(255, 46, 46, 0.8)', 'rgba(255, 32, 32, 0.6)', 'rgba(255, 32, 32, 0.2)', 'transparent'],
       size: 700
     }
   ]
@@ -1093,31 +1093,33 @@ onUnmounted(() => {
             <!-- Login Side -->
             <div class="auth-modal-front glass">
               <div class="auth-form">
-                <h2>Anmelden</h2>
-                <p class="auth-subtitle">Willkommen zurück!</p>
+                <div class="auth-form-content">
+                  <h2>Anmelden</h2>
+                  <p class="auth-subtitle">Willkommen zurück!</p>
 
-                <div class="form-group">
-                  <label>E-Mail</label>
-                  <input
-                    v-model="email"
-                    type="email"
-                    placeholder="deine@email.com"
-                    class="input-field"
-                  />
+                  <div class="form-group">
+                    <label>E-Mail</label>
+                    <input
+                      v-model="email"
+                      type="email"
+                      placeholder="deine@email.com"
+                      class="input-field"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Passwort</label>
+                    <input
+                      v-model="password"
+                      type="password"
+                      placeholder="••••••••"
+                      class="input-field"
+                      @keyup.enter="handleLogin"
+                    />
+                  </div>
+
+                  <div v-if="errorMessage && isLoginMode" class="error-message">{{ errorMessage }}</div>
                 </div>
-
-                <div class="form-group">
-                  <label>Passwort</label>
-                  <input
-                    v-model="password"
-                    type="password"
-                    placeholder="••••••••"
-                    class="input-field"
-                    @keyup.enter="handleLogin"
-                  />
-                </div>
-
-                <div v-if="errorMessage && isLoginMode" class="error-message">{{ errorMessage }}</div>
 
                 <button @click="handleLogin" class="btn-submit">Anmelden</button>
 
@@ -1131,41 +1133,43 @@ onUnmounted(() => {
             <!-- Register Side -->
             <div class="auth-modal-back glass">
               <div class="auth-form">
-                <h2>Registrieren</h2>
-                <p class="auth-subtitle">Erstelle dein Konto</p>
+                <div class="auth-form-content">
+                  <h2>Registrieren</h2>
+                  <p class="auth-subtitle">Erstelle dein Konto</p>
 
-                <div class="form-group">
-                  <label>E-Mail</label>
-                  <input
-                    v-model="email"
-                    type="email"
-                    placeholder="deine@email.com"
-                    class="input-field"
-                  />
+                  <div class="form-group">
+                    <label>E-Mail</label>
+                    <input
+                      v-model="email"
+                      type="email"
+                      placeholder="deine@email.com"
+                      class="input-field"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Passwort</label>
+                    <input
+                      v-model="password"
+                      type="password"
+                      placeholder="••••••••"
+                      class="input-field"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Passwort bestätigen</label>
+                    <input
+                      v-model="passwordConfirm"
+                      type="password"
+                      placeholder="••••••••"
+                      class="input-field"
+                      @keyup.enter="handleRegister"
+                    />
+                  </div>
+
+                  <div v-if="errorMessage && !isLoginMode" class="error-message">{{ errorMessage }}</div>
                 </div>
-
-                <div class="form-group">
-                  <label>Passwort</label>
-                  <input
-                    v-model="password"
-                    type="password"
-                    placeholder="••••••••"
-                    class="input-field"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Passwort bestätigen</label>
-                  <input
-                    v-model="passwordConfirm"
-                    type="password"
-                    placeholder="••••••••"
-                    class="input-field"
-                    @keyup.enter="handleRegister"
-                  />
-                </div>
-
-                <div v-if="errorMessage && !isLoginMode" class="error-message">{{ errorMessage }}</div>
 
                 <button @click="handleRegister" class="btn-submit">Registrieren</button>
 
@@ -1208,7 +1212,7 @@ onUnmounted(() => {
 }
 
 .landing-page {
-  background: linear-gradient(135deg, #001f3f 0%, #003d66 25%, #00548a 50%, #003d66 75%, #001f3f 100%);
+  background: linear-gradient(135deg, #FF4040 0%, #FF3030 25%, #E63946 50%, #FF3030 75%, #FF4040 100%);
   background-attachment: fixed;
   width: 100%;
   height: 100vh;
@@ -1487,10 +1491,14 @@ onUnmounted(() => {
   text-align: center;
   font-weight: 500;
   letter-spacing: 1.5px;
-  margin: 0 0 1rem 0;
+  margin: 0;
   padding: 0;
   line-height: 1.4;
   transition: opacity 0.4s ease;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .typing-text.fading {
@@ -1502,8 +1510,10 @@ onUnmounted(() => {
   perspective: 1200px;
   display: inline-block;
   width: 100%;
-  height: auto;
+  height: 60px;
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 /* Features Grid */
@@ -1515,10 +1525,10 @@ onUnmounted(() => {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   border-radius: 25px;
   padding: 3rem 1.5rem;
   text-align: center;
@@ -1531,7 +1541,7 @@ onUnmounted(() => {
   justify-content: center;
   box-shadow:
     0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
   z-index: 10;
 }
 
@@ -1542,7 +1552,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--current-primary), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   border-radius: 25px 25px 0 0;
   animation: smoothLightStreak 4s ease-in-out infinite;
 }
@@ -1554,7 +1564,7 @@ onUnmounted(() => {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: linear-gradient(135deg, var(--current-glow), transparent);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), transparent);
   border-radius: 25px;
   z-index: -1;
   opacity: 0;
@@ -1564,18 +1574,13 @@ onUnmounted(() => {
 
 .feature-card:hover {
   transform: translateY(-15px);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(35px);
   -webkit-backdrop-filter: blur(35px);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.25),
-    inset 0 1px 1px rgba(255, 255, 255, 0.25);
-  animation: pulseGlow 1.5s ease-in-out infinite;
-}
-
-.feature-card:hover::after {
-  opacity: 1;
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .feature-icon {
@@ -1612,10 +1617,10 @@ onUnmounted(() => {
 .step {
   flex: 1;
   min-width: 250px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   padding: 2rem;
   text-align: center;
@@ -1624,7 +1629,7 @@ onUnmounted(() => {
   overflow: hidden;
   box-shadow:
     0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
   z-index: 10;
 }
 
@@ -1635,7 +1640,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   border-radius: 20px 20px 0 0;
 }
 
@@ -1646,7 +1651,7 @@ onUnmounted(() => {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: rgba(255, 255, 255, 0.12);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), transparent);
   border-radius: 20px;
   z-index: -1;
   opacity: 0;
@@ -1660,8 +1665,8 @@ onUnmounted(() => {
   -webkit-backdrop-filter: blur(35px);
   box-shadow:
     0 18px 50px rgba(0, 0, 0, 0.2),
-    0 0 30px rgba(255, 255, 255, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    0 0 30px rgba(255, 255, 255, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .step:hover::after {
@@ -1811,7 +1816,6 @@ onUnmounted(() => {
   max-width: 1200px;
   position: relative;
   z-index: 12;
-  transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -1821,20 +1825,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.glass-container::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50px;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  filter: blur(8px);
-}
 
 .landing-page h1 {
   font-size: 5.5rem;
@@ -1960,55 +1950,36 @@ onUnmounted(() => {
 .btn-login {
   margin-top: 2.5rem;
   padding: 1.2rem 3.5rem;
-
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   color: #ffffff;
   border-radius: 30px;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
   letter-spacing: 1px;
-  animation: slideInUp 0.8s ease-out 0.6s backwards;
   margin-left: auto;
   margin-right: auto;
   display: block;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1),
-              inset 0 1px 1px rgba(255, 255, 255, 0.2);
-}
-
-.btn-login::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent);
-  animation: smoothLightStreak 3s ease-in-out infinite;
-  pointer-events: none;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.08),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .btn-login:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
   box-shadow:
-    0 15px 40px rgba(255, 255, 255, 0.15),
-    inset 0 1px 1px rgba(255, 255, 255, 0.3);
-  animation: pulseGlow 1s ease-in-out infinite;
+    0 8px 25px rgba(255, 255, 255, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .btn-login:active {
-  transform: translateY(-2px);
+  transform: scale(0.98);
 }
 
 /* Auth Modal */
@@ -2041,7 +2012,7 @@ onUnmounted(() => {
 .auth-modal-flip-container {
   position: relative;
   width: 480px;
-  height: 600px;
+  height: 680px;
 }
 
 .auth-modal-flipper {
@@ -2091,7 +2062,38 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  justify-content: center;
+  justify-content: space-between;
+}
+
+.auth-form-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+.auth-form-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.auth-form-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.auth-form-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.auth-form-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.auth-form > :first-child {
+  margin-top: 0;
+}
+
+.auth-form > :last-child {
+  margin-bottom: 0;
 }
 
 .auth-form h2 {
@@ -2158,21 +2160,38 @@ onUnmounted(() => {
 .btn-submit {
   width: 100%;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #ffffff;
   border-radius: 12px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
   margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-submit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(220, 53, 69, 0.3), transparent);
+  transition: left 0.6s ease;
 }
 
 .btn-submit:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  background: rgba(220, 53, 69, 0.15);
+  border-color: rgba(220, 53, 69, 0.5);
+  box-shadow: 0 0 20px rgba(220, 53, 69, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-submit:hover::before {
+  left: 100%;
 }
 
 .auth-toggle {
