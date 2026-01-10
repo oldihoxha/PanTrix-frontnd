@@ -26,9 +26,6 @@ let camera: THREE.OrthographicCamera
 let renderer: THREE.WebGLRenderer
 let apples: any[] = []
 let animationFrameId: number | null = null
-const BOUNCE_DAMPING = 0.7  // Weltraum-Effekt: sanftes, elastisches Abprallen
-
-const APPLE_RADIUS = 80 // Größerer Apfel (war 55, jetzt 80)
 
 let heroSectionHeight = 0
 let viewportWidthWorld = 0
@@ -49,231 +46,6 @@ const slogans = [
   'Sei nachhaltig'
 ]
 
-
-const createRealisticApple = (x: number, y: number, vx: number = 0, vy: number = 0, scale: number = 1.0) => {
-  // Apfel als detaillierte Kugel mit Stieldetails
-  const appleGroup = new THREE.Group()
-
-  // Hauptkörper - rote Kugel mit realistischen Materialien (optimiert)
-  const sphereGeometry = new THREE.SphereGeometry(APPLE_RADIUS, 32, 32)  // Reduziert von 64
-
-  const appleMaterial = new THREE.MeshStandardMaterial({
-    color: 0xdc3545,  // Natürliches, sattes Rot
-    metalness: 0.05,
-    roughness: 0.5,
-    emissive: 0x330000,  // Subtiles inneres Glühen
-    emissiveIntensity: 0.06,
-    flatShading: false,
-    wireframe: false
-  })
-
-  const sphere = new THREE.Mesh(sphereGeometry, appleMaterial)
-  sphere.castShadow = false
-  sphere.receiveShadow = false
-  // Stelle sicher, dass der Apfel immer uniform skaliert ist (keine Verzerrung)
-  sphere.scale.set(1, 1, 1)
-  appleGroup.add(sphere)
-
-  // Stiel (etwas dunkler und natürlicher)
-  const stemGeometry = new THREE.CylinderGeometry(4, 5, 20, 8)
-  const stemMaterial = new THREE.MeshStandardMaterial({
-    color: 0x6b4423,  // Natürlicheres Braun
-    metalness: 0,
-    roughness: 0.8
-  })
-  const stem = new THREE.Mesh(stemGeometry, stemMaterial)
-  stem.position.y = APPLE_RADIUS + 2
-  stem.castShadow = false
-  stem.receiveShadow = false
-  appleGroup.add(stem)
-
-  // Blatt
-  const leafGeometry = new THREE.BufferGeometry()
-  const leafVertices = new Float32Array([
-    0, 0, 0,      // Anfang
-    15, 8, 0,     // Spitze
-    18, -2, 0,    // Ende
-    0, -5, 0      // Verbindung
-  ])
-  const leafIndices = [0, 1, 2, 0, 2, 3]
-  leafGeometry.setAttribute('position', new THREE.BufferAttribute(leafVertices, 3))
-  leafGeometry.setIndex(leafIndices)
-  leafGeometry.computeVertexNormals()
-
-  const leafMaterial = new THREE.MeshStandardMaterial({
-    color: 0x3d6b2e,  // Natürlicheres Blattgrün
-    metalness: 0,
-    roughness: 0.6,
-    side: THREE.DoubleSide
-  })
-  const leaf = new THREE.Mesh(leafGeometry, leafMaterial)
-  leaf.position.set(8, APPLE_RADIUS + 2, 0)
-  leaf.rotation.z = 0.3
-  leaf.castShadow = true
-  leaf.receiveShadow = true
-  appleGroup.add(leaf)
-
-  // Glanzpunkt für Realismus
-  const shineGeometry = new THREE.SphereGeometry(25, 32, 32)
-  const shineMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffd9d9,  // Sanfteres Rosa/Weiß
-    metalness: 0.7,
-    roughness: 0.1,
-    emissive: 0xffaaaa,
-    emissiveIntensity: 0.3,
-    transparent: true,
-    opacity: 0.65
-  })
-  const shine = new THREE.Mesh(shineGeometry, shineMaterial)
-  shine.position.set(-12, 15, -15)
-  shine.scale.set(0.6, 0.8, 0.4)
-  appleGroup.add(shine)
-
-  appleGroup.position.set(x, y, 0)
-  // Wende individuelle Skalierung an für Größenvariation
-  appleGroup.scale.set(scale, scale, scale)
-
-  scene.add(appleGroup)
-
-  const appleObj = {
-    type: 'apple',
-    group: appleGroup,
-    mesh: sphere,
-    x: x,
-    y: y,
-    z: 0,
-    vx: vx,  // Nutze übergebene Geschwindigkeit
-    vy: vy,  // Nutze übergebene Geschwindigkeit
-    vz: 0,
-    radius: APPLE_RADIUS * scale,  // Radius angepasst an Scale
-    resting: false,
-    rotationX: 0,
-    rotationY: 0,
-    rotationZ: 0,
-    scale: scale  // Speichere Scale für später
-  }
-
-  apples.push(appleObj)
-  return appleObj
-}
-
-const BROCCOLI_HEIGHT = 150
-const BROCCOLI_WIDTH = 110
-
-const createRealisticBroccoli = (x: number, y: number, vx: number = 0, vy: number = 0, scale: number = 1.0) => {
-  // Brokkoli als komplexe Struktur mit Florets und Stengel
-  const broccoliGroup = new THREE.Group()
-
-  // Stengel (Hauptachse)
-  const stemGeometry = new THREE.CylinderGeometry(12, 15, BROCCOLI_HEIGHT * 0.4, 8)
-  const stemMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2d5016,  // Dunkles, natürliches Grün
-    metalness: 0,
-    roughness: 0.7,
-    emissive: 0x1a3009,
-    emissiveIntensity: 0.03
-  })
-  const stem = new THREE.Mesh(stemGeometry, stemMaterial)
-  stem.position.y = -BROCCOLI_HEIGHT * 0.15
-  stem.castShadow = true
-  stem.receiveShadow = true
-  broccoliGroup.add(stem)
-
-  // Florets Material
-  const floretMaterial: THREE.MeshStandardMaterial = new THREE.MeshStandardMaterial({
-    color: 0x4a7c2c,  // Lebendiges, realistisches Grün
-    metalness: 0.03,
-    roughness: 0.6,
-    emissive: 0x2d5016,
-    emissiveIntensity: 0.05,
-    flatShading: false
-  })
-
-  // Große zentrale Florets (oben)
-  const mainFloretPositions: Array<{pos: [number, number, number], size: number}> = [
-    { pos: [0, BROCCOLI_HEIGHT * 0.3, 0], size: 1.2 },
-    { pos: [-BROCCOLI_WIDTH * 0.2, BROCCOLI_HEIGHT * 0.15, -BROCCOLI_WIDTH * 0.15], size: 1.0 },
-    { pos: [BROCCOLI_WIDTH * 0.2, BROCCOLI_HEIGHT * 0.15, -BROCCOLI_WIDTH * 0.15], size: 1.0 },
-    { pos: [-BROCCOLI_WIDTH * 0.15, BROCCOLI_HEIGHT * 0.1, BROCCOLI_WIDTH * 0.2], size: 0.95 },
-    { pos: [BROCCOLI_WIDTH * 0.15, BROCCOLI_HEIGHT * 0.1, BROCCOLI_WIDTH * 0.2], size: 0.95 }
-  ]
-
-  mainFloretPositions.forEach(floret => {
-    const floretGeometry = new THREE.SphereGeometry(25 * floret.size, 48, 48)
-    const floretMesh = new THREE.Mesh(floretGeometry, floretMaterial)
-    floretMesh.position.set(floret.pos[0], floret.pos[1], floret.pos[2])
-    floretMesh.castShadow = true
-    floretMesh.receiveShadow = true
-    floretMesh.scale.set(0.9, 1.0, 0.9)  // Leicht verformt für organisches Aussehen
-    broccoliGroup.add(floretMesh)
-  })
-
-  // Kleinere, detailliertere Florets (Struktur)
-  const smallFloretGeometry = new THREE.SphereGeometry(15, 32, 32)
-  const smallFloretPositions: [number, number, number][] = [
-    [-BROCCOLI_WIDTH * 0.25, BROCCOLI_HEIGHT * 0.25, 0],
-    [BROCCOLI_WIDTH * 0.25, BROCCOLI_HEIGHT * 0.25, 0],
-    [0, BROCCOLI_HEIGHT * 0.2, BROCCOLI_WIDTH * 0.15],
-    [0, BROCCOLI_HEIGHT * 0.2, -BROCCOLI_WIDTH * 0.15],
-    [-BROCCOLI_WIDTH * 0.1, BROCCOLI_HEIGHT * 0.05, BROCCOLI_WIDTH * 0.1],
-    [BROCCOLI_WIDTH * 0.1, BROCCOLI_HEIGHT * 0.05, BROCCOLI_WIDTH * 0.1]
-  ]
-
-  smallFloretPositions.forEach(pos => {
-    const floret = new THREE.Mesh(smallFloretGeometry, floretMaterial)
-    floret.position.set(pos[0], pos[1], pos[2])
-    floret.castShadow = true
-    floret.receiveShadow = true
-    broccoliGroup.add(floret)
-  })
-
-  // Glanzpunkte für Realismus und Frische
-  const shineGeometry = new THREE.SphereGeometry(20, 32, 32)
-  const shineMaterial = new THREE.MeshStandardMaterial({
-    color: 0x8fbc8f,  // Helleres Grün für Glanz
-    metalness: 0.6,
-    roughness: 0.15,
-    emissive: 0xaaffaa,
-    emissiveIntensity: 0.25,
-    transparent: true,
-    opacity: 0.7
-  })
-
-  const shine1 = new THREE.Mesh(shineGeometry, shineMaterial)
-  shine1.position.set(-15, BROCCOLI_HEIGHT * 0.25, 20)
-  shine1.scale.set(0.5, 0.6, 0.4)
-  broccoliGroup.add(shine1)
-
-  const shine2 = new THREE.Mesh(shineGeometry, shineMaterial)
-  shine2.position.set(20, BROCCOLI_HEIGHT * 0.15, -15)
-  shine2.scale.set(0.45, 0.5, 0.35)
-  broccoliGroup.add(shine2)
-
-  broccoliGroup.position.set(x, y, 0)
-  broccoliGroup.scale.set(scale, scale, scale)
-
-  scene.add(broccoliGroup)
-
-  const broccoliObj = {
-    type: 'broccoli',
-    group: broccoliGroup,
-    x: x,
-    y: y,
-    z: 0,
-    vx: vx,
-    vy: vy,
-    vz: 0,
-    radius: BROCCOLI_WIDTH * 0.5 * scale,
-    resting: false,
-    rotationX: 0,
-    rotationY: 0,
-    rotationZ: 0,
-    scale: scale
-  }
-
-  apples.push(broccoliObj)
-  return broccoliObj
-}
 
 
 const init3DScene = () => {
@@ -436,7 +208,7 @@ const init3DScene = () => {
 
     // Animation für diesen Lichtstreifen
     let startTimeVertical: number | null = null
-    const delayVertical = i * 1.0
+    const delayVertical = i
 
     const animateVerticalStreak = (currentTime: number) => {
       if (!startTimeVertical) startTimeVertical = currentTime
@@ -522,7 +294,7 @@ const init3DScene = () => {
 
 
   // Erstelle Emojis mit verschiedenen Positionen und realistischen Größen
-  const emojis = emojiList.map((emoji, index) => {
+  const emojis = emojiList.map((emoji) => {
     const emojiEl = document.createElement('div')
     const x = Math.random() * (window.innerWidth - 100) // Platz für größte Emoji
     const y = Math.random() * (window.innerHeight - 100) // Platz für größte Emoji
@@ -901,8 +673,7 @@ const startCubeAnimation = () => {
   }
 
   const deleteSlogan = (callback: () => void) => {
-    const length = currentSlogan.value.length
-    let index = length
+    let index = currentSlogan.value.length
 
     const deleteChar = () => {
       if (index > 0) {
@@ -1066,16 +837,16 @@ onUnmounted(() => {
           <div class="footer-section">
             <h4>Links</h4>
             <ul>
-              <li><a href="#home">Home</a></li>
-              <li><a href="#features">Features</a></li>
-              <li><a href="#about">Über uns</a></li>
+              <li><a href="/">Home</a></li>
+              <li><a href="/">Features</a></li>
+              <li><a href="/">Über uns</a></li>
             </ul>
           </div>
           <div class="footer-section">
             <h4>Rechtliches</h4>
             <ul>
-              <li><a href="#privacy">Datenschutz</a></li>
-              <li><a href="#terms">Nutzungsbedingungen</a></li>
+              <li><a href="/">Datenschutz</a></li>
+              <li><a href="/">Nutzungsbedingungen</a></li>
             </ul>
           </div>
         </div>
@@ -1304,52 +1075,7 @@ onUnmounted(() => {
 }
 
 /* Theme Switch */
-.theme-switch-container {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.theme-switch-input {
-  display: none;
-}
-
-.theme-switch-label {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 60px;
-  height: 30px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-  padding: 0 8px;
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1);
-}
-
-.theme-switch-label:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #ffffff;
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.2), 0 0 10px rgba(255, 255, 255, 0.1);
-}
-
 /* Slider Circle */
-.theme-switch-slider {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  background: #ffffff;
-  border-radius: 50%;
-  top: 50%;
-  left: 2px;
-  transform: translateY(-50%);
-  transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  z-index: 2;
-}
 
 
 .nav-button:hover {
@@ -1840,32 +1566,6 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
-/* Hero Subtitle */
-.hero-subtitle {
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-  font-weight: 500;
-  letter-spacing: 1.5px;
-  margin: 0 0 1rem 0;
-  padding: 0;
-  animation: slideInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards;
-  line-height: 1.4;
-}
-
-/* Hero Tagline */
-.hero-tagline {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  font-weight: 300;
-  letter-spacing: 0.8px;
-  margin: 0 0 2.5rem 0;
-  padding: 0;
-  max-width: 600px;
-  line-height: 1.7;
-  animation: slideInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s backwards;
-}
 
 @keyframes slideInDown {
   from {
@@ -1983,15 +1683,6 @@ onUnmounted(() => {
 }
 
 /* Auth Modal */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
 
 .modal-overlay {
   position: fixed;
@@ -2249,9 +1940,6 @@ onUnmounted(() => {
     font-size: 2.5rem;
   }
 
-  .hero-subtitle {
-    font-size: 1rem;
-  }
 
   .features-grid {
     grid-template-columns: 1fr;
