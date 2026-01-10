@@ -168,87 +168,6 @@
         </div>
       </section>
 
-      <!-- Detail Modal - wird beim Klick angezeigt -->
-      <div v-if="selectedDetail" class="detail-modal" @click.self="closeDetailView">
-        <div class="detail-content">
-          <button class="detail-close" @click="closeDetailView">✕</button>
-
-          <div v-if="selectedDetail === 'total'" class="detail-breakdown">
-            <h2>Produkte gesamt</h2>
-            <div class="breakdown-list">
-              <div class="breakdown-item">
-                <span class="breakdown-label">🥬 Gemüse</span>
-                <span class="breakdown-value">8</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">🍎 Obst</span>
-                <span class="breakdown-value">6</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">🥛 Milchprodukte</span>
-                <span class="breakdown-value">5</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">🍖 Fleisch/Fisch</span>
-                <span class="breakdown-value">5</span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="selectedDetail === 'saved'" class="detail-breakdown">
-            <h2>Lebensmittel gerettet</h2>
-            <p class="detail-info">Du hast 18 Produkte vor der Verschwendung bewahrt!</p>
-            <div class="breakdown-list">
-              <div class="breakdown-item">
-                <span class="breakdown-label">💚 Erfolgsrate</span>
-                <span class="breakdown-value">75%</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">📈 Trend</span>
-                <span class="breakdown-value">↑ +20%</span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="selectedDetail === 'expiring'" class="detail-breakdown">
-            <h2>Bald ablaufend</h2>
-            <p class="detail-info">6 Produkte laufen in den nächsten 7 Tagen ab</p>
-            <div class="breakdown-list">
-              <div class="breakdown-item">
-                <span class="breakdown-label">Heute - 2 Tage</span>
-                <span class="breakdown-value">2</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">3 - 5 Tage</span>
-                <span class="breakdown-value">3</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">6 - 7 Tage</span>
-                <span class="breakdown-value">1</span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="selectedDetail === 'week'" class="detail-breakdown">
-            <h2>Diese Woche</h2>
-            <div class="breakdown-list">
-              <div class="breakdown-item">
-                <span class="breakdown-label">✅ Hinzugefügt</span>
-                <span class="breakdown-value">9</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">🍽️ Verwendet</span>
-                <span class="breakdown-value">3</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-label">⏰ Abgelaufen</span>
-                <span class="breakdown-value">1</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Alerts & Messages -->
       <section class="section alerts-section">
         <div class="section-content">
@@ -310,9 +229,6 @@ interface Alert {
 
 const props = defineProps<Props>()
 
-const showMyPantry = ref(false)
-const addProductMode = ref(false)
-const selectedDetail = ref<string | null>(null)
 
 // Live Counter Animation
 const displayCount1: Ref<number> = ref(0)
@@ -362,13 +278,6 @@ const logout = () => {
   props.onLogout()
 }
 
-const openDetailView = (type: string) => {
-  selectedDetail.value = type
-}
-
-const closeDetailView = () => {
-  selectedDetail.value = null
-}
 
 // Animate Counter Numbers on Mount
 const animateCounter = (targetValue: number, displayRef: Ref<number>, duration: number = 1500) => {
@@ -496,19 +405,6 @@ const createGradientEffects = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #000000;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Sehr leichte Gradient-Lichtstrahlen im Hintergrund */
-.home-page::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   background:
     linear-gradient(90deg, transparent 15%, rgba(255, 215, 0, 0.015) 50%, transparent 85%),
     linear-gradient(180deg, transparent 25%, rgba(255, 215, 0, 0.01) 50%, transparent 75%);
@@ -588,8 +484,6 @@ const createGradientEffects = () => {
 
 /* Notifications Button - Top Bar */
 .notifications-btn-top {
-  background: transparent;
-  border: none;
   cursor: pointer;
   font-size: 1.5rem;
   transition: all 0.2s ease;
@@ -768,80 +662,6 @@ const createGradientEffects = () => {
   padding: 1rem 0;
 }
 
-.my-pantry-hero-btn {
-  width: 100%;
-  max-width: 600px;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 30px;
-  padding: 3rem 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  position: relative;
-  overflow: hidden;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-}
-
-.my-pantry-hero-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  border-radius: 30px 30px 0 0;
-}
-
-.my-pantry-hero-btn:hover {
-  background: rgba(220, 53, 69, 0.12);
-  border-color: rgba(220, 53, 69, 0.4);
-  transform: translateY(-8px);
-  box-shadow:
-    0 6px 20px rgba(220, 53, 69, 0.2),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-}
-
-.pantry-icon {
-  font-size: 4rem;
-  display: block;
-  filter: drop-shadow(0 0 20px rgba(100, 200, 255, 0.4));
-}
-
-.pantry-title {
-  font-size: 2rem;
-  color: #ffffff;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
-
-.pantry-description {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.5px;
-}
-
-.pantry-arrow {
-  font-size: 1.5rem;
-  color: rgba(100, 200, 255, 0.8);
-  transition: transform 0.3s ease;
-}
-
-.my-pantry-hero-btn:hover .pantry-arrow {
-  transform: translateX(8px);
-}
 
 /* Quick Stats Section */
 .quick-stats-section {
@@ -1067,9 +887,7 @@ const createGradientEffects = () => {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-.storage-bars {
-  display: none;
-}
+
 
 .storage-chart-wrapper {
   display: flex;
@@ -1186,9 +1004,7 @@ const createGradientEffects = () => {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-.category-chart {
-  display: none;
-}
+
 
 .category-list-compact {
   display: flex;
@@ -1265,36 +1081,6 @@ const createGradientEffects = () => {
   }
 }
 
-/* Color-specific Glow Effects */
-.stat-card-column:hover {
-  border-color: rgba(100, 200, 255, 0.6);
-  box-shadow: 0 0 40px rgba(100, 200, 255, 0.3), 0 40px 100px rgba(0, 0, 0, 0.6);
-}
-
-.stat-card-arc:hover {
-  border-color: rgba(255, 144, 144, 0.6);
-  box-shadow: 0 0 40px rgba(255, 144, 144, 0.3), 0 40px 100px rgba(0, 0, 0, 0.6);
-}
-
-.stat-card-bar:hover {
-  border-color: rgba(255, 176, 144, 0.6);
-  box-shadow: 0 0 40px rgba(255, 176, 144, 0.3), 0 40px 100px rgba(0, 0, 0, 0.6);
-}
-
-.stat-card-stacked:hover {
-  border-color: rgba(100, 200, 255, 0.6);
-  box-shadow: 0 0 40px rgba(100, 200, 255, 0.3), 0 40px 100px rgba(0, 0, 0, 0.6);
-}
-
-.stat-card-mini:hover {
-  border-color: rgba(144, 238, 144, 0.6);
-  box-shadow: 0 0 40px rgba(144, 238, 144, 0.3), 0 40px 100px rgba(0, 0, 0, 0.6);
-}
-
-.stat-card-impact:hover {
-  border-color: rgba(200, 100, 255, 0.6);
-  box-shadow: 0 0 40px rgba(200, 100, 255, 0.3), 0 40px 100px rgba(0, 0, 0, 0.6);
-}
 
 .stat-card h3 {
   color: #ffffff;
@@ -1304,353 +1090,6 @@ const createGradientEffects = () => {
   letter-spacing: 0.8px;
   position: relative;
   z-index: 1;
-}
-
-.stat-description {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.85rem;
-  margin: 1.5rem 0 0 0;
-  position: relative;
-  z-index: 1;
-}
-
-/* Column Chart */
-.column-chart {
-  height: 180px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 1rem;
-  margin: 1.5rem 0;
-  position: relative;
-  z-index: 1;
-}
-
-.chart-bar {
-  width: 60px;
-  /* Fallback: var(--value, 0) falls die CSS-Variable nicht gesetzt ist */
-  height: calc((var(--value, 0) * 1px));
-  background: linear-gradient(180deg, var(--color) 0%, var(--color) 50%, rgba(255, 255, 255, 0.15) 100%);
-  border-radius: 12px 12px 0 0;
-  position: relative;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 30px var(--color);
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4));
-}
-
-.chart-bar:hover {
-  box-shadow: 0 0 50px var(--color), 0 20px 40px rgba(0, 0, 0, 0.5);
-  transform: scaleY(1.05);
-}
-
-.bar-value {
-  position: absolute;
-  bottom: -35px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #ffffff;
-  font-weight: 900;
-  font-size: 1.3rem;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-}
-
-/* Arc Progress */
-.arc-progress {
-  position: relative;
-  height: 120px;
-  margin: 1.5rem 0;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.arc-svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 20px rgba(255, 144, 144, 0.4));
-  transition: filter 0.4s ease;
-}
-
-.stat-card:hover .arc-svg {
-  filter: drop-shadow(0 0 40px rgba(255, 144, 144, 0.6));
-}
-
-.arc-value {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #FF9090;
-  font-size: 2.2rem;
-  font-weight: 900;
-  text-shadow: 0 0 20px rgba(255, 144, 144, 0.5);
-}
-
-/* Horizontal Bar */
-.horizontal-bar {
-  height: 35px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 18px;
-  overflow: hidden;
-  margin: 1.5rem 0;
-  position: relative;
-  z-index: 1;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.bar-segment {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color) 0%, var(--color) 50%, rgba(255, 255, 255, 0.2) 100%);
-  /* Fallback width in case --width is not defined */
-  width: var(--width, 50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1), 0 0 25px var(--color);
-  filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
-}
-
-.bar-segment:hover {
-  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.15), 0 0 40px var(--color);
-}
-
-.bar-text {
-  color: #ffffff;
-  font-weight: 900;
-  font-size: 1rem;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-}
-
-/* Stacked Bars */
-.stacked-bars {
-  display: flex;
-  height: 50px;
-  border-radius: 15px;
-  overflow: hidden;
-  margin: 1.5rem 0;
-  gap: 3px;
-  position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.02);
-  padding: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.stacked-item {
-  background: linear-gradient(180deg, var(--color) 0%, var(--color) 50%, rgba(255, 255, 255, 0.15) 100%);
-  /* Fallback flex value falls --percentage nicht gesetzt ist */
-  flex: var(--percentage, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 0.95rem;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 10px;
-  box-shadow: 0 0 20px var(--color), inset 0 0 15px rgba(255, 255, 255, 0.1);
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-}
-
-.stacked-item:hover {
-  box-shadow: 0 0 40px var(--color), inset 0 0 25px rgba(255, 255, 255, 0.15);
-  transform: scale(1.05);
-}
-
-.stacked-legend {
-  display: flex;
-  gap: 1.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 1.2rem;
-  position: relative;
-  z-index: 1;
-}
-
-.stacked-legend span {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.stacked-legend em {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  box-shadow: 0 0 10px currentColor;
-}
-
-/* Animierte Balken - Größenwechsel auf Container Hover */
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  min-height: 350px;
-}
-
-.stat-card-large {
-  grid-column: span 1;
-}
-
-.stat-card-small {
-  min-height: 320px;
-  justify-content: space-between;
-}
-
-/* Animierte Säulen beim Hover */
-.stat-card:hover .chart-bar {
-  height: calc((var(--value, 0) * 1.15px));
-  box-shadow: 0 0 60px var(--color), 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-
-/* Animierte Balkenbreite beim Hover */
-.stat-card:hover .bar-segment {
-  width: calc((var(--width, 50%) * 1.2));
-  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.15), 0 0 50px var(--color);
-  filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.4));
-}
-
-/* Animierte gestapelte Balken beim Hover */
-.stat-card:hover .stacked-item {
-  box-shadow: 0 0 50px var(--color), inset 0 0 25px rgba(255, 255, 255, 0.15);
-  transform: scale(1.08);
-  filter: brightness(1.2);
-}
-
-/* Arc Glow Animation */
-.stat-card:hover .arc-svg {
-  filter: drop-shadow(0 0 40px rgba(255, 144, 144, 0.6));
-}
-
-
-
-/* Enhanced Glassmorphism - Option 9 */
-.stats-visualization-grid .stat-card {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 25px;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  position: relative;
-  overflow: hidden;
-}
-
-.stats-visualization-grid .stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  border-radius: 25px 25px 0 0;
-}
-
-.stats-visualization-grid .stat-card:hover {
-  background: rgba(220, 53, 69, 0.08);
-  border-color: rgba(220, 53, 69, 0.3);
-  box-shadow:
-    0 6px 20px rgba(220, 53, 69, 0.15),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-}
-
-/* Enhanced Detail Modal Glassmorphism */
-.detail-content {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  position: relative;
-}
-
-.detail-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  border-radius: 30px 30px 0 0;
-}
-
-/* Mini Stats */
-.mini-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin: 1.5rem 0;
-  position: relative;
-  z-index: 1;
-}
-
-.mini-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 1.2rem;
-  border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.3s ease;
-}
-
-.mini-stat:hover {
-  background: rgba(220, 53, 69, 0.12);
-  border-color: rgba(220, 53, 69, 0.2);
-}
-
-.mini-label {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.mini-value {
-  font-size: 2rem;
-  font-weight: 900;
-  text-shadow: 0 0 15px currentColor;
-}
-
-/* Impact Circle */
-.impact-circle {
-  position: relative;
-  width: 140px;
-  height: 140px;
-  margin: 1.5rem auto;
-  z-index: 1;
-}
-
-.impact-svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 30px rgba(200, 100, 255, 0.4));
-}
-
-.impact-value {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #C864FF;
-  font-size: 2rem;
-  font-weight: 900;
-  text-shadow: 0 0 20px rgba(200, 100, 255, 0.6);
 }
 
 /* Alerts Section */
@@ -1724,29 +1163,6 @@ const createGradientEffects = () => {
   -webkit-backdrop-filter: blur(25px);
 }
 
-.alert-card.warning {
-  border-left: 4px solid rgba(255, 180, 100, 0.8);
-}
-
-.alert-card.warning:hover {
-  box-shadow: -5px 0 20px rgba(255, 180, 100, 0.2);
-}
-
-.alert-card.info {
-  border-left: 4px solid rgba(100, 200, 255, 0.8);
-}
-
-.alert-card.info:hover {
-  box-shadow: -5px 0 20px rgba(100, 200, 255, 0.2);
-}
-
-.alert-card.success {
-  border-left: 4px solid rgba(144, 238, 144, 0.8);
-}
-
-.alert-card.success:hover {
-  box-shadow: -5px 0 20px rgba(144, 238, 144, 0.2);
-}
 
 .alert-icon {
   font-size: 2rem;
@@ -1778,146 +1194,6 @@ const createGradientEffects = () => {
   margin: 0;
 }
 
-/* Other Actions Section */
-.other-actions-section {
-  background: transparent;
-  padding: 4rem 2rem;
-}
-
-/* Action Buttons */
-.section-content {
-  max-width: 1400px;
-  width: 100%;
-}
-
-.section-content h2 {
-  font-size: 2.5rem;
-  color: #ffffff;
-  text-align: center;
-  margin-bottom: 3rem;
-  font-weight: 900;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.action-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
-
-.action-btn {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.4s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.action-btn:hover {
-  background: rgba(220, 53, 69, 0.12);
-  border-color: rgba(220, 53, 69, 0.4);
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(220, 53, 69, 0.15);
-}
-
-.action-icon {
-  font-size: 2.5rem;
-  display: block;
-}
-
-.action-text {
-  font-size: 1rem;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.add-product-btn {
-  border-color: rgba(220, 53, 69, 0.3);
-}
-
-.add-product-btn:hover {
-  background: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.5);
-}
-
-.my-pantry-btn {
-  border-color: rgba(220, 53, 69, 0.3);
-}
-
-.my-pantry-btn:hover {
-  background: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.5);
-}
-
-.notifications-btn {
-  border-color: rgba(220, 53, 69, 0.3);
-}
-
-.notifications-btn:hover {
-  background: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.5);
-}
-
-/* Features Section */
-.features-section {
-  background: transparent;
-  padding: 6rem 2rem;
-}
-
-.how-it-works-section {
-  background: transparent;
-  padding: 6rem 2rem;
-}
-
-/* Footer */
-.footer {
-  background: rgba(255, 255, 255, 0.02);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 3rem 2rem 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  width: 100%;
-}
-
-.footer-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto 2rem;
-}
-
-.footer-section h4 {
-  color: #ffffff;
-  margin-bottom: 1rem;
-  font-weight: 700;
-}
-
-.footer-section p {
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
-
-.footer-bottom {
-  text-align: center;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -1925,24 +1201,6 @@ const createGradientEffects = () => {
     font-size: 2rem;
   }
 
-  .stats-grid,
-  .action-buttons {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .stat-card,
-  .action-btn {
-    padding: 1.5rem;
-  }
-
-  .action-icon {
-    font-size: 1.8rem;
-  }
-
-  .stat-icon {
-    font-size: 1.8rem;
-  }
 
   .profile-email {
     display: none;
@@ -1951,109 +1209,6 @@ const createGradientEffects = () => {
   .logo-text {
     font-size: 1.2rem;
   }
-}
-
-/* Progress Ring Styles */
-.ring-container {
-  position: relative;
-  width: 150px;
-  height: 150px;
-  margin: 1.5rem auto;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
-
-.progress-ring {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.ring-background {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 12;
-}
-
-.ring-progress {
-  fill: none;
-  stroke-width: 12;
-  stroke: var(--color, #64C8FF);
-  stroke-dasharray: 565.48;
-  stroke-dashoffset: calc(565.48 - (565.48 * var(--progress) / 100));
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 0 25px var(--color, #64C8FF)) drop-shadow(0 0 50px var(--color, #64C8FF));
-}
-
-.stat-card:hover .ring-progress {
-  filter: drop-shadow(0 0 40px var(--color, #64C8FF)) drop-shadow(0 0 70px var(--color, #64C8FF));
-  stroke-width: 14;
-}
-
-.ring-value {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.ring-number {
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: #ffffff;
-  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
-}
-
-.ring-label {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 600;
-}
-
-/* Detail Modal */
-.detail-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.detail-content {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  border-radius: 30px;
-  padding: 3rem;
-  max-width: 500px;
-  width: 90%;
-  position: relative;
-  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes slideIn {
@@ -2065,79 +1220,6 @@ const createGradientEffects = () => {
     transform: translateY(0);
     opacity: 1;
   }
-}
-
-.detail-close {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.detail-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.detail-breakdown h2 {
-  color: #ffffff;
-  font-size: 1.8rem;
-  font-weight: 900;
-  margin: 0 0 1.5rem 0;
-  letter-spacing: 1px;
-}
-
-.detail-info {
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0 0 1.5rem 0;
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.breakdown-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.breakdown-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.2rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  transition: all 0.3s ease;
-}
-
-.breakdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateX(5px);
-}
-
-.breakdown-label {
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.breakdown-value {
-  color: rgba(100, 200, 255, 0.9);
-  font-size: 1.3rem;
-  font-weight: 900;
-  text-shadow: 0 0 10px rgba(100, 200, 255, 0.3);
 }
 </style>
 
