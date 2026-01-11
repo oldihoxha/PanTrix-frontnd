@@ -2,6 +2,7 @@
   <div class="pantry-interface-modal">
     <!-- Main Container with Toolbar and Products -->
     <div class="pantry-main-container">
+
       <!-- Toolbar Section -->
       <div class="pantry-toolbar">
         <!-- Search Bar (Left) -->
@@ -22,7 +23,8 @@
                   :key="category"
                   :class="['category-btn', { active: activeCategory === category }]"
                   :style="{
-                    '--category-color': category !== 'Alle' ? getCategoryColor(category) : 'transparent'
+                    background: activeCategory === category && category !== 'Alle' ? getCategoryColor(category) : 'rgba(255, 255, 255, 0.04)',
+                    borderColor: activeCategory === category && category !== 'Alle' ? getCategoryColor(category) : 'rgba(255, 255, 255, 0.08)',
                   }"
                   @click="activeCategory = category"
                 >
@@ -63,17 +65,63 @@
           <p>Nutze die <strong>Hinzufügen</strong> Taste in der Toolbar um Produkte zu hinzufügen.</p>
         </div>
 
-        <!-- Actual Products -->
-        <div
-          v-for="product in filteredProducts"
-          :key="product.id"
-          class="product-card product-item"
-        >
-          <button class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
-          <div class="card-content">
-            <div class="product-name">{{ product.name }}</div>
-            <div class="category-dot" :style="{ backgroundColor: getCategoryColor(product.category) }" :title="product.category"></div>
-            <div class="product-expiry">{{ formatDate(product.expiryDate) }}</div>
+        <!-- Active Products Section -->
+        <div v-if="activeProducts.length > 0" class="products-section">
+          <div class="section-title">Aktive Produkte</div>
+          <div class="products-list">
+            <div
+              v-for="product in activeProducts"
+              :key="product.id"
+              class="product-card product-item"
+            >
+              <button class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
+              <div v-if="canBeRescued(product.expiryDate)" class="rescue-btn-wrapper">
+                <button
+                  v-if="!product.rescued"
+                  class="rescue-btn"
+                  @click="rescueProduct(product.id)"
+                  title="Verzehrt - vor Verschwendung bewahrt">
+                  🎯
+                </button>
+                <div v-else class="rescued-badge">✓ Verzehrt</div>
+              </div>
+              <div class="card-content">
+                <div class="product-name">{{ product.name }}</div>
+                <div class="category-dot" :style="{ backgroundColor: getCategoryColor(product.category) }" :title="product.category"></div>
+                <div class="product-expiry">{{ formatDate(product.expiryDate) }}</div>
+                <div v-if="canBeRescued(product.expiryDate)" class="days-left">{{ getDaysUntilExpiry(product.expiryDate) }}d übrig</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expired Products Section -->
+        <div v-if="expiredProducts.length > 0" class="products-section expired-section">
+          <div class="section-title expired-title">⚠️ Abgelaufene Produkte</div>
+          <div class="products-list">
+            <div
+              v-for="product in expiredProducts"
+              :key="product.id"
+              class="product-card product-item expired-product"
+              :class="{ 'pulse-animation': true }"
+            >
+              <button class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
+              <div class="rescue-btn-wrapper">
+                <button
+                  v-if="!product.rescued"
+                  class="rescue-btn"
+                  @click="rescueProduct(product.id)"
+                  title="Verzehrt - vor Verschwendung bewahrt">
+                  🎯
+                </button>
+                <div v-else class="rescued-badge">✓ Verzehrt</div>
+              </div>
+              <div class="card-content">
+                <div class="product-name">{{ product.name }}</div>
+                <div class="category-dot" :style="{ backgroundColor: getCategoryColor(product.category) }" :title="product.category"></div>
+                <div class="product-expiry expired-date">{{ formatDate(product.expiryDate) }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -171,7 +219,14 @@ interface Product {
   category: string
   expiryDate: string
   quantity: number
+  addedAt?: string
+  status?: string
+  rescued?: boolean
 }
+
+const emit = defineEmits<{
+  'update:products': [products: Product[]]
+}>()
 
 const searchQuery = ref('')
 const activeCategory = ref('Alle')
@@ -184,6 +239,8 @@ const categories = ref(['Alle', 'Obst', 'Gemüse', 'Fleisch', 'Milchprodukte', '
 const sortOptions = ref(['Neu hinzugefügt', 'Ablaufdatum', 'Kategorie', 'Name'])
 
 const products = ref<Product[]>([])
+
+const rescuedProducts = ref<Product[]>([])
 
 const newProduct = ref<Partial<Product>>({
   name: '',
@@ -275,6 +332,14 @@ const selectDate = (dateString: string) => {
   newProduct.value.expiryDate = dateString
 }
 
+const isProductExpired = (expiryDate: string): boolean => {
+  const today = new Date()
+  const todayString = today.getFullYear() + '-' +
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                      String(today.getDate()).padStart(2, '0')
+  return expiryDate < todayString
+}
+
 const filteredProducts = computed(() => {
   let filtered = products.value
 
@@ -302,6 +367,14 @@ const filteredProducts = computed(() => {
   return filtered
 })
 
+const activeProducts = computed(() => {
+  return filteredProducts.value.filter(p => !isProductExpired(p.expiryDate) && p.status !== 'verbraucht')
+})
+
+const expiredProducts = computed(() => {
+  return filteredProducts.value.filter(p => isProductExpired(p.expiryDate))
+})
+
 const toggleSortDropdown = () => {
   showSortDropdown.value = !showSortDropdown.value
 }
@@ -323,25 +396,31 @@ const closeAddProductModal = () => {
 
 const addProduct = () => {
   if (newProduct.value.name && newProduct.value.category && newProduct.value.expiryDate) {
+    // Heutiges Datum im Format YYYY-MM-DD (lokale Zeit)
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const todayString = `${year}-${month}-${day}`
+
     const product: Product = {
       id: Math.max(...products.value.map(p => p.id), 0) + 1,
       name: newProduct.value.name,
       category: newProduct.value.category,
       expiryDate: newProduct.value.expiryDate,
       quantity: newProduct.value.quantity || 1,
+      addedAt: todayString,  // Heute hinzugefügt
+      status: 'aktiv'  // Standard Status
     }
     products.value.unshift(product)
+    emit('update:products', products.value)
     closeAddProductModal()
   }
 }
 
-const selectProduct = (product: Product) => {
-  console.log('Produkt ausgewählt:', product)
-  // TODO: Öffne Produktdetails oder Bearbeitungsseite
-}
-
 const deleteProduct = (id: number) => {
   products.value = products.value.filter(p => p.id !== id)
+  emit('update:products', products.value)
 }
 
 const formatDate = (dateString: string): string => {
@@ -360,6 +439,34 @@ const categoryColors: Record<string, string> = {
 
 const getCategoryColor = (category: string): string => {
   return categoryColors[category] || 'rgba(255, 255, 255, 0.5)'
+}
+
+const getDaysUntilExpiry = (expiryDate: string): number => {
+  const today = new Date()
+  const todayString = today.getFullYear() + '-' +
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                      String(today.getDate()).padStart(2, '0')
+  const timeDiff = new Date(expiryDate).getTime() - new Date(todayString).getTime()
+  return Math.ceil(timeDiff / (1000 * 60 * 60 * 24))
+}
+
+const canBeRescued = (expiryDate: string): boolean => {
+  const daysUntilExpiry = getDaysUntilExpiry(expiryDate)
+  return daysUntilExpiry >= 0 && daysUntilExpiry <= 3
+}
+
+const rescueProduct = (id: number) => {
+  const productIndex = products.value.findIndex(p => p.id === id)
+  if (productIndex !== -1) {
+    const product: Product = { ...products.value[productIndex]! }
+    product.status = 'verbraucht'
+    product.rescued = true
+    // Speichere das Produkt in der geretteten Liste
+    rescuedProducts.value.push(product)
+    // Entferne das Produkt aus der aktiven Liste
+    products.value.splice(productIndex, 1)
+    emit('update:products', products.value)
+  }
 }
 </script>
 <style scoped>
@@ -403,6 +510,100 @@ const getCategoryColor = (category: string): string => {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   border-radius: 30px 30px 0 0;
 }
+
+
+/* Category Tabs */
+.category-tabs {
+  flex: 1;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.category-btn {
+  padding: 0.7rem 1.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.category-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  border-radius: 12px;
+  display: none;
+}
+
+.category-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.category-btn.active {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15),
+              0 0 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.category-btn.active:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
+              0 0 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Special styling for "Alle" button */
+.category-btn:first-child {
+  position: relative;
+}
+
+.category-btn:first-child::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: conic-gradient(
+    from 0deg,
+    #9D4EDD 0%,
+    #FF006E 16.66%,
+    #FFD60A 33.33%,
+    #06D6A0 50%,
+    #00B4D8 66.66%,
+    #9D4EDD 100%
+  );
+  opacity: 0;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  pointer-events: none;
+  display: block;
+}
+
+.category-btn:first-child.active::before {
+  opacity: 1;
+}
+
 
 /* Toolbar Section */
 .pantry-toolbar {
@@ -461,76 +662,6 @@ const getCategoryColor = (category: string): string => {
   font-size: 0.8rem;
 }
 
-/* Category Tabs */
-.category-tabs {
-  flex: 1;
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-.category-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.category-btn {
-  padding: 0.5rem 1.1rem;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  letter-spacing: 0.2px;
-  flex-shrink: 1;
-  min-width: 90px;
-  text-align: center;
-  position: relative;
-}
-
-.category-btn::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 3px;
-  border-radius: 2px;
-  opacity: 0;
-  background: currentColor;
-}
-
-.category-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.category-btn:hover::before {
-  opacity: 0.6;
-  bottom: 2px;
-}
-
-.category-btn.active {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-  font-weight: 800;
-}
-
-.category-btn.active::before {
-  opacity: 1;
-  bottom: 2px;
-  height: 4px;
-}
 
 /* Toolbar Actions */
 .toolbar-actions {
@@ -677,12 +808,6 @@ const getCategoryColor = (category: string): string => {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-  opacity: 0.7;
-}
-
 .empty-state h3 {
   font-size: 1.4rem;
   font-weight: 700;
@@ -762,23 +887,6 @@ const getCategoryColor = (category: string): string => {
   z-index: 1;
 }
 
-.plus-icon {
-  font-size: 2.8rem;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 300;
-  line-height: 1;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
-}
-
-.card-text {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
 
 /* Toolbar Actions */
 .toolbar-actions {
@@ -873,6 +981,99 @@ const getCategoryColor = (category: string): string => {
   letter-spacing: 0.3px;
 }
 
+.days-left {
+  font-size: 0.7rem;
+  color: rgba(255, 200, 100, 0.85);
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(255, 200, 100, 0.1);
+  border-radius: 6px;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Rescue Button */
+.rescue-btn-wrapper {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+}
+
+.rescue-btn {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(100, 200, 150, 0.3), rgba(100, 200, 150, 0.15));
+  border: 1.5px solid rgba(100, 200, 150, 0.5);
+  border-radius: 50%;
+  font-size: 1.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(100, 200, 150, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.rescue-btn:hover {
+  background: linear-gradient(135deg, rgba(100, 200, 150, 0.5), rgba(100, 200, 150, 0.3));
+  border-color: rgba(100, 200, 150, 0.7);
+  transform: scale(1.1);
+  box-shadow: 0 6px 25px rgba(100, 200, 150, 0.35);
+}
+
+.rescue-btn:active {
+  transform: scale(0.95);
+}
+
+/* Rescued Badge */
+.rescued-badge {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  padding: 0.5rem 0.8rem;
+  background: linear-gradient(135deg, rgba(100, 200, 150, 0.4), rgba(100, 200, 150, 0.2));
+  border: 1.5px solid rgba(100, 200, 150, 0.6);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgba(100, 200, 150, 0.95);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(100, 200, 150, 0.2);
+  animation: badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: translateX(-50%) scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
 /* Delete Button */
 .delete-btn {
   position: absolute;
@@ -902,14 +1103,72 @@ const getCategoryColor = (category: string): string => {
   box-shadow: 0 0 15px rgba(255, 100, 100, 0.2);
 }
 
-.add-card {
-  border: 2px dashed rgba(255, 255, 255, 0.2);
+/* Products Sections */
+.products-section {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
 }
 
-.add-card:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.08);
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 0.8rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
 }
+
+.expired-title {
+  color: rgba(255, 100, 100, 0.9);
+  border-bottom-color: rgba(255, 100, 100, 0.3);
+}
+
+.products-list {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1.8rem;
+}
+
+/* Expired Product Styling */
+.expired-product {
+  background: linear-gradient(135deg, rgba(255, 100, 100, 0.12), rgba(255, 150, 100, 0.08));
+  border-color: rgba(255, 100, 100, 0.35);
+  animation: pulse-expired 2.5s ease-in-out infinite;
+}
+
+.expired-product:hover {
+  background: linear-gradient(135deg, rgba(255, 100, 100, 0.18), rgba(255, 150, 100, 0.12));
+  border-color: rgba(255, 100, 100, 0.5);
+  animation: none;
+}
+
+.expired-date {
+  color: rgba(255, 100, 100, 0.95) !important;
+  font-weight: 800;
+}
+
+/* Pulse Animation for Expired Products */
+@keyframes pulse-expired {
+  0% {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                0 0 0 0 rgba(255, 100, 100, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                0 0 0 8px rgba(255, 100, 100, 0);
+  }
+  100% {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                0 0 0 0 rgba(255, 100, 100, 0);
+  }
+}
+
 
 /* Modal */
 .modal-overlay {
@@ -1305,6 +1564,7 @@ const getCategoryColor = (category: string): string => {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
+
   .pantry-main-container {
     padding: 2rem;
   }

@@ -31,7 +31,7 @@
       <section class="section my-pantry-section">
         <div class="section-content">
           <h2>Meine Vorratskammer</h2>
-          <PantryInterfaceModal />
+          <PantryInterfaceModal @update:products="onProductsUpdate" />
         </div>
       </section>
 
@@ -47,21 +47,19 @@
             <div class="stat-widget widget-categories">
               <h3>Kategorien</h3>
               <div class="categories-list">
-                <div class="category-item">
-                  <span class="cat-name">Gemüse</span>
-                  <span class="cat-count">8</span>
-                </div>
-                <div class="category-item">
-                  <span class="cat-name">Obst</span>
-                  <span class="cat-count">6</span>
-                </div>
-                <div class="category-item">
-                  <span class="cat-name">Milchprodukte</span>
-                  <span class="cat-count">5</span>
-                </div>
-                <div class="category-item">
-                  <span class="cat-name">Fleisch & Fisch</span>
-                  <span class="cat-count">5</span>
+                <div
+                  v-for="category in ['Gemüse', 'Obst', 'Milchprodukte', 'Fleisch']"
+                  :key="category"
+                  class="category-item"
+                  :class="{ 'has-products': getCategoryCount(category) > 0 }"
+                  :style="{
+                    borderColor: getCategoryCount(category) > 0 ? getCategoryColor(category) : 'rgba(255, 255, 255, 0.1)',
+                    backgroundColor: getCategoryCount(category) > 0 ? `${getCategoryColor(category)}20` : 'transparent',
+                    boxShadow: getCategoryCount(category) > 0 ? `0 0 12px ${getCategoryColor(category)}40` : 'none'
+                  }"
+                >
+                  <span class="cat-name">{{ category }}</span>
+                  <span class="cat-count">{{ getCategoryCount(category) }}</span>
                 </div>
               </div>
             </div>
@@ -70,11 +68,35 @@
             <div class="stat-widget widget-large widget-total">
               <h3>Gesamte Produkte</h3>
               <div class="widget-main-content">
-                <div class="big-number">{{ displayCount1 }}</div>
-                <div class="progress-bar">
-                  <div class="progress-fill" style="width: 75%"></div>
+                <div class="big-number">{{ totalProducts }}</div>
+
+                <!-- Farbiger Progress-Bar mit Kategorien -->
+                <div class="progress-bar-container">
+                  <div class="progress-bar">
+                    <!-- Segment für jede Kategorie - nur anzeigen wenn Produkte existieren -->
+                    <div
+                      v-if="totalProducts > 0"
+                      v-for="category in ['Gemüse', 'Obst', 'Fleisch', 'Milchprodukte', 'Sonstiges']"
+                      :key="category"
+                      class="progress-segment"
+                      :style="{
+                        width: ((getCategoryCount(category)) / totalProducts * 100) + '%',
+                        backgroundColor: getCategoryColor(category),
+                        transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                        opacity: getCategoryCount(category) > 0 ? 1 : 0
+                      }"
+                      :title="`${category}: ${getCategoryCount(category)}`"
+                    />
+                    <!-- Leerer Balken wenn keine Produkte -->
+                    <div
+                      v-if="totalProducts === 0"
+                      class="progress-segment progress-empty"
+                      style="width: 100%; background-color: rgba(255, 255, 255, 0.08);"
+                    />
+                  </div>
                 </div>
-                <p class="widget-subtitle">75% Kapazität genutzt</p>
+
+                <p class="widget-subtitle">{{ Math.round(capacityPercentage) }}% Kapazität genutzt</p>
               </div>
             </div>
 
@@ -84,84 +106,165 @@
               <div class="widget-main-content">
                 <div class="medium-number">{{ displayCount2 }}</div>
                 <p class="widget-subtitle">vor Verschwendung bewahrt</p>
-                <div class="progress-indicator">↑ +20%</div>
+                <div class="progress-indicator" v-if="getProgressPercentage() > 0">↑ +{{ getProgressPercentage() }}% Ziel erreicht</div>
+                <div class="progress-indicator" v-else>Starten Sie jetzt!</div>
               </div>
             </div>
 
-            <!-- Expiring Soon Widget (Small Right) -->
+            <!-- Expiring Soon Widget (Combined) -->
             <div class="stat-widget widget-small widget-expiring">
               <h3>Bald ablaufend</h3>
               <div class="widget-main-content">
-                <div class="small-number">{{ displayCount3 }}</div>
-                <p class="widget-subtitle">in den nächsten 7 Tagen</p>
+                <div class="expiring-dual-display">
+                  <!-- 7 Tage -->
+                  <div class="expiring-time-group">
+                    <div class="small-number">{{ getExpiringIn2Days() + getExpiringIn5Days() }}</div>
+                    <p class="widget-subtitle">in den nächsten 7 Tagen</p>
+                  </div>
+
+                  <!-- Divider -->
+                  <div class="expiring-divider"></div>
+
+                  <!-- 3 Tage -->
+                  <div class="expiring-time-group">
+                    <div class="small-number">{{ getExpiringIn3Days() }}</div>
+                    <p class="widget-subtitle">in den nächsten 3 Tagen</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <!-- Row 2 -->
-            <!-- Storage Widget (Left) -->
+            <!-- Storage Widget (Left) - HINZUGEFÜGTE PRODUKTE -->
             <div class="stat-widget widget-storage">
-              <h3>Lagerbestände</h3>
+              <h3>Hinzugefügte Produkte</h3>
               <div class="storage-chart-wrapper">
+                <!-- Y-Axis Labels -->
                 <div class="y-axis">
-                  <span class="y-label">100%</span>
-                  <span class="y-label">75%</span>
-                  <span class="y-label">50%</span>
-                  <span class="y-label">25%</span>
-                  <span class="y-label">0%</span>
+                  <span class="y-label">20</span>
+                  <span class="y-label">15</span>
+                  <span class="y-label">10</span>
+                  <span class="y-label">5</span>
+                  <span class="y-label">0</span>
                 </div>
+
+                <!-- Chart -->
                 <div class="chart-container">
                   <div class="chart-grid"></div>
-                  <div class="bars-container">
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 80%;"></div>
-                    </div>
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 60%;"></div>
-                    </div>
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 50%;"></div>
-                    </div>
-                  </div>
+
+                  <!-- SVG Liniendiagramm -->
+                  <svg class="line-chart" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet">
+                    <!-- Baseline (Y=0) als Referenzlinie -->
+                    <line x1="0" y1="180" x2="360" y2="180" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2,2" />
+
+                    <!-- Linien für jede Kategorie -->
+                    <polyline
+                      v-for="category in chartCategories"
+                      :key="'line-' + category"
+                      :points="getChartPointsForCategory(category)"
+                      :style="{ stroke: getCategoryColor(category) }"
+                      class="chart-line"
+                    />
+
+                    <!-- Datenpunkte (Dots) für jede Kategorie -->
+                    <g v-for="category in chartCategories" :key="'dots-' + category">
+                      <circle
+                        v-for="(day, dayIndex) in weekDays"
+                        :key="'dot-' + category + '-' + day"
+                        :cx="dayIndex * 50 + 25"
+                        :cy="180 - ((weeklyStats[day]?.[category] || 0) * 9)"
+                        r="3.5"
+                        :fill="getCategoryColor(category)"
+                        class="chart-dot"
+                        :style="{ opacity: 0.85 }"
+                      />
+                      <!-- Optional: Wert-Labels für Debug -->
+                      <text
+                        v-for="(day, dayIndex) in weekDays"
+                        :key="'label-' + category + '-' + day"
+                        :x="dayIndex * 50 + 25"
+                        :y="165 - ((weeklyStats[day]?.[category] || 0) * 9)"
+                        font-size="8"
+                        fill="rgba(255,255,255,0.4)"
+                        text-anchor="middle"
+                        :style="{ pointerEvents: 'none' }"
+                      >
+                        {{ weeklyStats[day]?.[category] || 0 }}
+                      </text>
+                    </g>
+                  </svg>
                 </div>
+
+                <!-- X-Axis Labels -->
                 <div class="x-axis">
-                  <span class="x-label">Gemüse</span>
-                  <span class="x-label">Obst</span>
-                  <span class="x-label">Milch</span>
+                  <span v-for="day in weekDays" :key="day" class="x-label">{{ day }}</span>
+                </div>
+              </div>
+
+              <!-- Legende -->
+              <div class="chart-legend-storage">
+                <div v-for="category in chartCategories" :key="category" class="legend-item-small">
+                  <span class="legend-dot-small" :style="{ backgroundColor: getCategoryColor(category) }"></span>
+                  <span class="legend-label-small">{{ category }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Week Overview Widget (Large Right) -->
-            <div class="stat-widget widget-large widget-week">
-              <h3>Produktkategorien Übersicht</h3>
-              <div class="category-list-compact">
-                <div class="category-list-item">
-                  <div class="category-info">
-                    <span class="category-name">Gemüse</span>
-                    <span class="category-value">8</span>
+            <!-- Product Status Widget (Large Right) -->
+            <div class="stat-widget widget-large widget-product-status">
+              <h3>Produktzustand</h3>
+              <div class="pie-chart-container">
+                <div class="pie-chart-wrapper">
+                  <svg class="pie-chart" viewBox="0 0 100 100">
+                    <!-- Show segment only if products exist in that category -->
+                    <circle
+                      v-if="availableProducts > 0"
+                      class="pie-segment available"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      :style="{ strokeDasharray: totalProducts > 0 ? `${(availableProducts / totalProducts) * 251.2} 251.2` : '0 251.2' }"
+                    />
+                    <circle
+                      v-if="expiredProducts > 0"
+                      class="pie-segment expired"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      :style="{ strokeDasharray: totalProducts > 0 ? `${(expiredProducts / totalProducts) * 251.2} 251.2` : '0 251.2', strokeDashoffset: availableProducts > 0 ? `-${(availableProducts / totalProducts) * 251.2}` : '0' }"
+                    />
+                    <!-- Transparent circle when no products -->
+                    <circle
+                      v-if="totalProducts === 0"
+                      class="pie-segment-empty"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                    />
+                  </svg>
+                  <div class="pie-center">
+                    <div class="pie-center-value">{{ totalProducts }}</div>
+                    <div class="pie-center-label">Gesamt</div>
                   </div>
-                  <div class="category-bar-small" style="width: 65%;"></div>
                 </div>
-                <div class="category-list-item">
-                  <div class="category-info">
-                    <span class="category-name">Obst</span>
-                    <span class="category-value">6</span>
+                <div class="pie-legend">
+                  <div v-if="availableProducts > 0" class="legend-item available">
+                    <span class="legend-dot"></span>
+                    <div class="legend-info">
+                      <div class="legend-name">Verfügbar</div>
+                      <div class="legend-count">{{ availableProducts }}</div>
+                    </div>
                   </div>
-                  <div class="category-bar-small" style="width: 48%;"></div>
-                </div>
-                <div class="category-list-item">
-                  <div class="category-info">
-                    <span class="category-name">Milchprodukte</span>
-                    <span class="category-value">5</span>
+                  <div v-if="expiredProducts > 0" class="legend-item expired">
+                    <span class="legend-dot"></span>
+                    <div class="legend-info">
+                      <div class="legend-name">Abgelaufen</div>
+                      <div class="legend-count">{{ expiredProducts }}</div>
+                    </div>
                   </div>
-                  <div class="category-bar-small" style="width: 40%;"></div>
-                </div>
-                <div class="category-list-item">
-                  <div class="category-info">
-                    <span class="category-name">Fleisch & Fisch</span>
-                    <span class="category-value">5</span>
+                  <div v-if="totalProducts === 0" class="legend-item-empty">
+                    <span class="legend-label-empty">Keine Produkte eingetragen</span>
                   </div>
-                  <div class="category-bar-small" style="width: 40%;"></div>
                 </div>
               </div>
             </div>
@@ -206,13 +309,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
 import PantryInterfaceModal from './PantryInterfaceModal.vue'
 
 interface Props {
   currentUser: string
   onLogout: () => void
+}
+
+interface Product {
+  id: number
+  name: string
+  category: string
+  expiryDate: string
+  quantity: number
+  addedAt?: string  // YYYY-MM-DD format
+  status?: 'aktiv' | 'verbraucht' | 'entsorgt'  // default: 'aktiv'
 }
 
 interface Alert {
@@ -226,12 +339,278 @@ interface Alert {
 
 const props = defineProps<Props>()
 
+// Products from Pantry
+const products = ref<Product[]>([])
+
+// ============== BERECHNUNGSFUNKTIONEN (unabhängig von UI) ==============
+
+/**
+ * Gibt das Ablaufdatum als Date-Objekt zurück
+ * Erwartet Format: "YYYY-MM-DD"
+ */
+const parseExpiryDate = (dateString: string): Date => {
+  const parts = dateString.split('-')
+  if (parts.length !== 3) return new Date()
+  const [year, month, day] = parts
+  // Verwende lokale Zeit, nicht UTC
+  return new Date(parseInt(year || '0'), parseInt(month || '1') - 1, parseInt(day || '1'))
+}
+
+/**
+ * Gibt die Wochennummer aus einem Datum zurück (0 = Montag, 6 = Sonntag)
+ */
+const getDayOfWeek = (date: Date): number => {
+  let day = date.getDay() - 1
+  if (day === -1) day = 6
+  return day
+}
+
+/**
+ * Konvertiert heutiges Datum zu YYYY-MM-DD String (lokale Zeit, nicht UTC)
+ */
+const getTodayString = (): string => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Zählt aktive Produkte nach Kategorie
+ */
+const getProductsByCategory = (category: string): number => {
+  return products.value.filter(p => p.category === category && (p.status === 'aktiv' || !p.status)).length
+}
+
+/**
+ * Zählt alle aktiven Produkte
+ */
+const getActiveProductsCount = (): number => {
+  return products.value.filter(p => p.status === 'aktiv' || !p.status).length
+}
+
+/**
+ * Zählt ALLE Produkte (egal welcher Status)
+ */
+const getTotalProductsCount = (): number => {
+  return products.value.length
+}
+
+/**
+ * Zählt Produkte mit status = "verbraucht", deren Ablaufdatum noch nicht überschritten war
+ */
+const getSavedProductsCount = (): number => {
+  const today = new Date()
+  return products.value.filter(p => {
+    if (p.status !== 'verbraucht') return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= today
+  }).length
+}
+
+/**
+ * Berechnet den Progress-Prozentsatz für das Ziel der geretteten Produkte
+ * Ziel: 20 Produkte vor Verschwendung bewahrt
+ */
+const getProgressPercentage = (): number => {
+  const goal = 20
+  const saved = getSavedProductsCount()
+  return Math.min(Math.round((saved / goal) * 100), 100)
+}
+/**
+ * Zählt aktive Produkte, deren Ablaufdatum in den nächsten 7 Tagen liegt
+ */
+const getExpiringProductsCount = (): number => {
+  const today = new Date()
+  const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+  return products.value.filter(p => {
+    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= today && expiryDate <= in7Days
+  }).length
+}
+
+/**
+ * Zählt Produkte die in den nächsten 2 Tagen ablaufen (KRITISCH)
+ */
+const getExpiringIn2Days = (): number => {
+  const today = new Date()
+  const in2Days = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000)
+
+  return products.value.filter(p => {
+    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= today && expiryDate <= in2Days
+  }).length
+}
+
+/**
+ * Zählt Produkte die in den nächsten 3 Tagen ablaufen
+ */
+const getExpiringIn3Days = (): number => {
+  const today = new Date()
+  const in3Days = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
+
+  return products.value.filter(p => {
+    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= today && expiryDate <= in3Days
+  }).length
+}
+
+/**
+ * Zählt Produkte die in 3-7 Tagen ablaufen (WARNUNG)
+ */
+const getExpiringIn5Days = (): number => {
+  const today = new Date()
+  const in3Days = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
+  const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+  return products.value.filter(p => {
+    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate > in3Days && expiryDate <= in7Days
+  }).length
+}
+
+/**
+ * Zählt abgelaufene Produkte (aktive Produkte, deren Ablaufdatum überschritten ist)
+ */
+const getExpiredProductsCount = (): number => {
+  const today = new Date()
+  return products.value.filter(p => {
+    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate < today
+  }).length
+}
+
+/**
+ * Zählt verfügbare (noch nicht abgelaufene) Produkte
+ */
+const getAvailableProductsCount = (): number => {
+  const today = new Date()
+  return products.value.filter(p => {
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= today
+  }).length
+}
+
+/**
+ * Gruppiert Produkte nach Wochentag UND Kategorie (basierend auf addedAt)
+ * Gibt nested Record zurück: { 'Mo': { 'Obst': 5, 'Gemüse': 3, ... }, ... }
+ */
+const getProductsByWeekdayAndCategory = (): Record<string, Record<string, number>> => {
+  const weekdays: string[] = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+  const categories: string[] = ['Obst', 'Gemüse', 'Fleisch', 'Milchprodukte', 'Sonstiges']
+
+  // Initialisiere nested structure
+  const stats: Record<string, Record<string, number>> = {}
+  weekdays.forEach(day => {
+    stats[day] = {}
+    categories.forEach(cat => {
+      const dayRecord = stats[day]
+      if (dayRecord) {
+        dayRecord[cat] = 0
+      }
+    })
+  })
+
+  // Zähle Produkte nach Wochentag und Kategorie
+  products.value.forEach(p => {
+    // DEBUG: Zeige Produktdaten in der Konsole
+    if (p.name) {
+      console.log(`Produkt: ${p.name}, Kategorie: ${p.category}, addedAt: ${p.addedAt}, Status: ${p.status}`)
+    }
+
+    if (!p.addedAt || !p.category) return
+    const date = parseExpiryDate(p.addedAt)
+    const dayIndex = getDayOfWeek(date)
+
+    if (dayIndex >= 0 && dayIndex < weekdays.length) {
+      const day = weekdays[dayIndex]
+      if (day && stats[day] && p.category in stats[day]) {
+        const dayStats = stats[day]
+        if (dayStats) {
+          dayStats[p.category] = (dayStats[p.category] ?? 0) + 1
+        }
+      }
+    }
+  })
+
+  return stats
+}
+
+/**
+ * Berechnet die maximale Kapazität (hier: 32 Produkte)
+ */
+const MAX_CAPACITY = 32
+
+/**
+ * Berechnet die Kapazitätsauslastung in Prozent
+ */
+const getCapacityPercentage = (): number => {
+  const activeCount = getActiveProductsCount()
+  return (activeCount / MAX_CAPACITY) * 100
+}
+
+// ============== COMPUTED PROPERTIES (basierend auf Berechnungsfunktionen) ==============
 
 // Live Counter Animation
 const displayCount1: Ref<number> = ref(0)
 const displayCount2: Ref<number> = ref(0)
 const displayCount3: Ref<number> = ref(0)
 const displayCount4: Ref<number> = ref(0)
+
+/**
+ * Kategorie-Statistiken (nur aktive Produkte)
+ */
+const categoryStats = computed(() => {
+  return {
+    'Obst': getProductsByCategory('Obst'),
+    'Gemüse': getProductsByCategory('Gemüse'),
+    'Fleisch': getProductsByCategory('Fleisch'),
+    'Milchprodukte': getProductsByCategory('Milchprodukte'),
+    'Sonstiges': getProductsByCategory('Sonstiges')
+  }
+})
+
+/**
+ * Gesamtzahl aktiver Produkte
+ */
+const totalProducts = computed(() => getTotalProductsCount())
+
+/**
+ * Anzahl Produkte, die bald ablaufen
+ */
+const expiringProducts = computed(() => getExpiringProductsCount())
+
+/**
+ * Anzahl abgelaufener Produkte
+ */
+const expiredProducts = computed(() => getExpiredProductsCount())
+
+/**
+ * Anzahl verfügbarer (nicht abgelaufener) Produkte
+ */
+const availableProducts = computed(() => getAvailableProductsCount())
+
+/**
+ * Anzahl geretteter Produkte (verbraucht, aber nicht abgelaufen)
+ */
+const savedProducts = computed(() => getSavedProductsCount())
+
+/**
+ * Kapazitätsauslastung in Prozent
+ */
+const capacityPercentage = computed(() => getCapacityPercentage())
+
+/**
+ * Produkte pro Wochentag UND Kategorie für das Diagramm
+ */
+const weeklyStats = computed(() => getProductsByWeekdayAndCategory())
 
 // Sample alerts - später wird das vom Backend kommen
 const alerts = ref<Alert[]>([
@@ -271,10 +650,78 @@ const currentDate = computed(() => {
   return now.toLocaleDateString('de-DE', options)
 })
 
+// Category Colors
+const categoryColors: Record<string, string> = {
+  'Obst': '#9D4EDD',      // Lila
+  'Fleisch': '#FF006E',    // Pink
+  'Milchprodukte': '#FFD60A', // Gelb
+  'Gemüse': '#06D6A0',    // Grün
+  'Sonstiges': '#00B4D8'  // Blau
+}
+
+const getCategoryColor = (category: string): string => {
+  return categoryColors[category] || 'rgba(255, 255, 255, 0.5)'
+}
+
+/**
+ * Sichere Funktion, um Produktanzahl einer Kategorie zu holen
+ */
+const getCategoryCount = (category: string): number => {
+  const validCategories: Record<string, string> = {
+    'Obst': 'Obst',
+    'Gemüse': 'Gemüse',
+    'Fleisch': 'Fleisch',
+    'Milchprodukte': 'Milchprodukte',
+    'Sonstiges': 'Sonstiges'
+  }
+
+  if (category in validCategories) {
+    return categoryStats.value[category as keyof typeof categoryStats.value] || 0
+  }
+  return 0
+}
+
+// Weekly stats for chart
+const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+
+/**
+ * Alle verfügbaren Kategorien (nicht nur die, die in Produkten vorkommen)
+ */
+const chartCategories = computed(() => {
+  return ['Obst', 'Gemüse', 'Fleisch', 'Milchprodukte', 'Sonstiges']
+})
+
+/**
+ * Hilfsfunktion für das SVG-Liniendiagramm - berechnet Punkte für eine Kategorie
+ * Y-Achse: 0 bis 20 (in 5er-Schritten)
+ */
+const getChartPointsForCategory = (category: string): string => {
+  const points: string[] = []
+  const stats = weeklyStats.value
+
+  weekDays.forEach((day, index) => {
+    const dayStats = stats[day]
+    const value = (dayStats && dayStats[category]) || 0
+    const x = index * 50 + 25
+    // Y-Achse: 0-20, 180px height, also 9px pro Einheit
+    const y = 180 - (value * 9)
+    points.push(`${x},${y}`)
+  })
+
+  const pointsString = points.join(' ')
+  console.log(`Chart Points für ${category}:`, pointsString)
+  return pointsString
+}
+
 const logout = () => {
   props.onLogout()
 }
 
+// Handle products update from PantryInterfaceModal
+
+const onProductsUpdate = (updatedProducts: any[]) => {
+  products.value = updatedProducts as Product[]
+}
 
 // Animate Counter Numbers on Mount
 const animateCounter = (targetValue: number, displayRef: Ref<number>, duration: number = 1500) => {
@@ -300,12 +747,24 @@ const animateCounter = (targetValue: number, displayRef: Ref<number>, duration: 
   updateCount()
 }
 
+// Watcher für Produktänderungen um Counter zu aktualisieren
+watch(products, () => {
+  animateCounter(getActiveProductsCount(), displayCount1, 800)
+  animateCounter(getSavedProductsCount(), displayCount2, 800)
+  animateCounter(getExpiringProductsCount(), displayCount3, 800)
+  animateCounter(getTotalProductsCount(), displayCount4, 800)
+}, { deep: true })
+
 onMounted(() => {
   // Start counter animations with staggered delay
-  setTimeout(() => animateCounter(24, displayCount1), 300)
-  setTimeout(() => animateCounter(18, displayCount2), 500)
-  setTimeout(() => animateCounter(6, displayCount3), 700)
-  setTimeout(() => animateCounter(13, displayCount4), 900)
+  // 1. Gesamte Produkte (aktive)
+  setTimeout(() => animateCounter(getActiveProductsCount(), displayCount1), 300)
+  // 2. Gerettete Produkte (status = verbraucht, nicht abgelaufen)
+  setTimeout(() => animateCounter(getSavedProductsCount(), displayCount2), 500)
+  // 3. Bald ablaufend (aktive, nächste 7 Tage)
+  setTimeout(() => animateCounter(getExpiringProductsCount(), displayCount3), 700)
+  // 4. Total aller Produkte (unabhängig von Status)
+  setTimeout(() => animateCounter(getTotalProductsCount(), displayCount4), 900)
 
   // Erstelle animierte Lichtstrahlen und Glow-Effekte wie in TheWelcome
   createGradientEffects()
@@ -315,6 +774,45 @@ onMounted(() => {
 const createGradientEffects = () => {
   const container = document.querySelector('.home-page') as HTMLElement
   if (!container) return
+
+  // Erstelle Intersection Observer für Scroll-Reveal Animationen
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.remove('reveal-hidden')
+        entry.target.classList.add('reveal-visible')
+      } else {
+        entry.target.classList.remove('reveal-visible')
+        entry.target.classList.add('reveal-hidden')
+      }
+    })
+  }, observerOptions)
+
+  // Beobachte alle Sections
+  const sections = document.querySelectorAll('.section')
+  sections.forEach((section) => {
+    section.classList.add('reveal-hidden')
+    observer.observe(section)
+  })
+
+  // Beobachte alle Stat Widgets
+  const widgets = document.querySelectorAll('.stat-widget')
+  widgets.forEach((widget) => {
+    widget.classList.add('reveal-hidden')
+    observer.observe(widget)
+  })
+
+  // Beobachte alle Alert Cards
+  const alerts = document.querySelectorAll('.alert-card')
+  alerts.forEach((alert) => {
+    alert.classList.add('reveal-hidden')
+    observer.observe(alert)
+  })
 
 
   // Erstelle 3 große radiale Gradients (Glow-Effekte)
@@ -750,13 +1248,14 @@ const createGradientEffects = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     font-size: 0.75rem;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
   }
 
   .category-item:hover {
@@ -765,17 +1264,41 @@ const createGradientEffects = () => {
     transform: translateX(2px);
   }
 
+  /* Kategorie mit Produkten - aufleuchten */
+  .category-item.has-products {
+    border-width: 2px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .category-item.has-products:hover {
+    transform: translateX(2px);
+    border-width: 2px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
   .cat-name {
     color: rgba(255, 255, 255, 0.8);
     font-weight: 600;
+    transition: color 0.3s ease;
+  }
+
+  .category-item.has-products .cat-name {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 700;
   }
 
   .cat-count {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.85);
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     min-width: 25px;
     text-align: right;
+    transition: color 0.3s ease;
+  }
+
+  .category-item.has-products .cat-count {
+    color: rgba(255, 255, 255, 1);
+    font-weight: 900;
   }
 
   /* Total Products Widget - Large */
@@ -823,13 +1346,40 @@ const createGradientEffects = () => {
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   }
 
+  .progress-bar-container {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+
   .progress-bar {
     width: 100%;
-    height: 6px;
+    height: 8px;
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 0;
+  }
+
+  .progress-segment {
+    height: 100%;
+    min-width: 2px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .progress-segment:first-child {
+    border-radius: 12px 0 0 12px;
+  }
+
+  .progress-segment:last-child {
+    border-radius: 0 12px 12px 0;
+  }
+
+  .progress-segment.progress-empty {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
   }
 
   .progress-fill {
@@ -881,6 +1431,30 @@ const createGradientEffects = () => {
     border-color: rgba(255, 255, 255, 0.25);
   }
 
+  /* Expiring Dual Display */
+  .expiring-dual-display {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .expiring-time-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .expiring-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 1px;
+  }
+
   /* Storage Widget */
 
   .widget-storage {
@@ -893,9 +1467,9 @@ const createGradientEffects = () => {
 
   .storage-chart-wrapper {
     display: flex;
+    flex-direction: row;
     gap: 0.8rem;
-    height: 120px;
-    align-items: flex-end;
+    align-items: stretch;
   }
 
   .y-axis {
@@ -903,17 +1477,18 @@ const createGradientEffects = () => {
     flex-direction: column;
     justify-content: space-between;
     align-items: flex-end;
-    height: 100%;
-    padding-right: 0.6rem;
+    height: 180px;
+    width: 40px;
+    padding-right: 0.8rem;
     border-right: 1px solid rgba(255, 255, 255, 0.15);
-    width: 35px;
     flex-shrink: 0;
   }
 
   .y-label {
-    font-size: 0.6rem;
+    font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.5);
     font-weight: 600;
+    line-height: 1;
   }
 
   .chart-container {
@@ -921,8 +1496,10 @@ const createGradientEffects = () => {
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
-    align-items: flex-end;
-    gap: 0.8rem;
+    align-items: stretch;
+    gap: 0;
+    height: 180px;
+    margin-left: 0;
   }
 
   .chart-grid {
@@ -931,59 +1508,102 @@ const createGradientEffects = () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.04) 0,
-      rgba(255, 255, 255, 0.04) 1px,
-      transparent 1px,
-      transparent 25%
-    );
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.03) 0px,
+        rgba(255, 255, 255, 0.03) 1px,
+        transparent 1px,
+        transparent 36px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px,
+        transparent calc(100% / 7)
+      );
     pointer-events: none;
-    border-radius: 4px;
   }
 
-  .bars-container {
-    display: flex;
-    gap: 0.8rem;
+  .line-chart {
     width: 100%;
-    align-items: flex-end;
-    position: relative;
-    z-index: 1;
-  }
-
-  .bar-wrapper {
-    flex: 1;
     height: 100%;
-    display: flex;
-    align-items: flex-end;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 6px 6px 0 0;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-bottom: none;
-    padding: 0 0.4rem 0 0.4rem;
-  }
-
-  .bar {
-    width: 100%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 100%);
-    border-radius: 4px 4px 0 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
     position: relative;
+    z-index: 2;
   }
 
-  .bar:hover {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.35) 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 12px rgba(255, 255, 255, 0.15);
-    filter: brightness(1.2);
+  .chart-line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.85;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+  }
+
+  .chart-line:hover {
+    stroke-width: 3.5;
+    opacity: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  }
+
+  .chart-dot {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    stroke: rgba(0, 0, 0, 0.8);
+    stroke-width: 1.5;
+  }
+
+  .chart-dot:hover {
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
   }
 
   .x-axis {
     display: flex;
+    justify-content: space-around;
     gap: 0;
-    margin-top: 0.6rem;
-    padding-left: 35px;
-    width: calc(100% - 35px);
+    margin-top: 0.8rem;
+    width: 100%;
+    padding-right: 0;
+  }
+
+  .x-label {
+    flex: 1;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding-top: 0.4rem;
+  }
+
+  .chart-legend-storage {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .legend-item-small {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 700;
+  }
+
+  .legend-dot-small {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
   }
 
   .x-label {
@@ -996,71 +1616,211 @@ const createGradientEffects = () => {
     letter-spacing: 0.2px;
   }
 
+  .chart-legend-storage {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-left: 35px;
+  }
 
-  /* Week Widget - Large */
+  .legend-item-small {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 700;
+  }
 
-  .widget-week {
+  .legend-dot-small {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+
+  /* Product Status Widget - Large */
+
+  .widget-product-status {
     grid-column: 3 / 5;
     grid-row: 2;
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(255, 255, 255, 0.12);
-  }
-
-
-  .category-list-compact {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
   }
 
-  .category-list-item {
+  .widget-product-status h3 {
+    margin-bottom: 1.2rem;
+  }
+
+  .pie-chart-container {
     display: flex;
     align-items: center;
+    gap: 2rem;
+    flex: 1;
+  }
+
+  .pie-chart-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+  }
+
+  .pie-chart {
+    width: 150px;
+    height: 150px;
+    transform: rotate(-90deg);
+  }
+
+  .pie-segment {
+    fill: none;
+    stroke-width: 20;
+    stroke-linecap: round;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .pie-segment.available {
+    stroke: #00D966;
+    filter: drop-shadow(0 0 8px rgba(0, 217, 102, 0.4));
+  }
+
+  .pie-segment.expired {
+    stroke: #FF2E4B;
+    filter: drop-shadow(0 0 8px rgba(255, 46, 75, 0.4));
+  }
+
+  .pie-segment:hover {
+    filter: brightness(1.2) drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
+    stroke-width: 22;
+  }
+
+  .pie-center {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pie-center-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1;
+  }
+
+  .pie-center-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: 0.3rem;
+  }
+
+  .pie-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+  }
+
+  .legend-item {
+    display: flex;
     gap: 0.8rem;
-    padding: 0.4rem;
-    border-radius: 8px;
+    align-items: center;
+    padding: 0.8rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     transition: all 0.3s ease;
   }
 
-  .category-list-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+  .legend-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
-  .category-info {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-width: 100px;
+  .legend-item.available {
+    border-color: rgba(0, 217, 102, 0.3);
+  }
+
+  .legend-item.expired {
+    border-color: rgba(255, 46, 75, 0.3);
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .category-name {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.75);
+  .legend-item.available .legend-dot {
+    background: #00D966;
+    box-shadow: 0 0 8px rgba(0, 217, 102, 0.5);
+  }
+
+  .legend-item.expired .legend-dot {
+    background: #FF2E4B;
+    box-shadow: 0 0 8px rgba(255, 46, 75, 0.5);
+  }
+
+  .legend-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .legend-name {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
   }
 
-  .category-value {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.9);
+  .legend-count {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.95);
     font-weight: 800;
-    min-width: 20px;
-    text-align: right;
   }
 
-  .category-bar-small {
-    flex: 1;
-    height: 6px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15));
-    border-radius: 6px;
-    transition: all 0.3s ease;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  .pie-segment-empty {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 20;
+    stroke-linecap: round;
+    opacity: 0.5;
   }
 
-  .category-list-item:hover .category-bar-small {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.25));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 255, 255, 0.1);
+  .legend-item-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2rem 0.8rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
   }
+
+  .legend-label-empty {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+  }
+
 
   /* Responsive Design */
   @media (max-width: 1200px) {
@@ -1077,7 +1837,7 @@ const createGradientEffects = () => {
       grid-column: 1 / 3;
     }
 
-    .widget-week {
+    .widget-product-status {
       grid-column: 1 / 3;
     }
   }
@@ -1282,6 +2042,31 @@ const createGradientEffects = () => {
       transform: translateY(0);
       opacity: 1;
     }
+  }
+
+  /* Scroll-Reveal Animations */
+  .reveal-hidden {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .section.reveal-visible {
+    transition-delay: 0.1s;
+  }
+
+  .stat-widget.reveal-visible {
+    transition-delay: 0.2s;
+  }
+
+  .alert-card.reveal-visible {
+    transition-delay: 0.15s;
   }
 </style>
 
