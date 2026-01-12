@@ -1201,6 +1201,7 @@ const rescueProduct = (id: number) => {
   overflow: hidden;
 }
 
+
 .modal-content.modal-with-calendar {
   max-width: 1000px;
   display: flex;

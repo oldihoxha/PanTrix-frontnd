@@ -3,22 +3,39 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import HomeView from './HomeView.vue'
 import * as THREE from 'three'
+import { useAuth } from '../composables/useAuth'
+import { setupAxiosInterceptors } from '../services/axiosInterceptors'
 
 const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
 const products = ref<any[]>([])
-const isLoading = ref(false)
 
+// ...existing code...
 
-// Login/Registrierungs-States
+// Nutze Auth Composable
+const {
+  isLoggedIn,
+  currentUser,
+  authToken,
+  isLoading,
+  errorMessage,
+  isAuthenticated,
+  login,
+  register,
+  logout: logoutUser,
+  initialize: initializeAuth,
+  setCurrentUser
+} = useAuth()
+
+// Initialisiere Auth Interceptors
+setupAxiosInterceptors(axios)
+
+// Zusätzliche UI-States
 const showAuthModal = ref(false)
 const isLoginMode = ref(true)
+const showHomePage = ref(false)
 const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
-const errorMessage = ref('')
-const isLoggedIn = ref(false)
-const currentUser = ref<string>('')
-const showHomePage = ref(false)
 
 // 3D Scene Setup
 let scene: THREE.Scene
@@ -563,14 +580,12 @@ const toggleMode = () => {
   passwordConfirm.value = ''
 }
 
-const logout = () => {
-  isLoggedIn.value = false
-  currentUser.value = ''
+const logout = async () => {
+  await logoutUser()
   showHomePage.value = false
   email.value = ''
   password.value = ''
   passwordConfirm.value = ''
-  errorMessage.value = ''
 
   // Stelle sicher, dass die Landing Page alle Animationen neu startet
   nextTick(() => {
@@ -598,9 +613,7 @@ const logout = () => {
   })
 }
 
-const handleLogin = () => {
-  errorMessage.value = ''
-
+const handleLogin = async () => {
   if (!email.value || !password.value) {
     errorMessage.value = 'Bitte füllen Sie alle Felder aus'
     return
@@ -611,16 +624,15 @@ const handleLogin = () => {
     return
   }
 
-  console.log('Login:', email.value, password.value)
-  isLoggedIn.value = true
-  currentUser.value = email.value
-  showHomePage.value = true
-  closeAuthModal()
+  const success = await login(email.value, password.value)
+  if (success) {
+    setCurrentUser(email.value)
+    showHomePage.value = true
+    closeAuthModal()
+  }
 }
 
-const handleRegister = () => {
-  errorMessage.value = ''
-
+const handleRegister = async () => {
   if (!email.value || !password.value || !passwordConfirm.value) {
     errorMessage.value = 'Bitte füllen Sie alle Felder aus'
     return
@@ -641,11 +653,12 @@ const handleRegister = () => {
     return
   }
 
-  console.log('Register:', email.value, password.value)
-  isLoggedIn.value = true
-  currentUser.value = email.value
-  showHomePage.value = true
-  closeAuthModal()
+  const success = await register(email.value, password.value)
+  if (success) {
+    setCurrentUser(email.value)
+    showHomePage.value = true
+    closeAuthModal()
+  }
 }
 
 // Cube Flip Animation Start - jetzt Fade Animation
@@ -892,7 +905,10 @@ onUnmounted(() => {
                   <div v-if="errorMessage && isLoginMode" class="error-message">{{ errorMessage }}</div>
                 </div>
 
-                <button @click="handleLogin" class="btn-submit">Anmelden</button>
+                <button @click="handleLogin" class="btn-submit" :disabled="isLoading">
+                  <span v-if="!isLoading">Anmelden</span>
+                  <span v-else>Wird angemeldet...</span>
+                </button>
 
                 <p class="auth-toggle">
                   Noch kein Konto?
@@ -942,7 +958,10 @@ onUnmounted(() => {
                   <div v-if="errorMessage && !isLoginMode" class="error-message">{{ errorMessage }}</div>
                 </div>
 
-                <button @click="handleRegister" class="btn-submit">Registrieren</button>
+                <button @click="handleRegister" class="btn-submit" :disabled="isLoading">
+                  <span v-if="!isLoading">Registrieren</span>
+                  <span v-else>Wird registriert...</span>
+                </button>
 
                 <p class="auth-toggle">
                   Du hast schon ein Konto?
@@ -1885,6 +1904,22 @@ onUnmounted(() => {
   left: 100%;
 }
 
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.btn-submit:disabled:hover {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+  box-shadow: 0 0 20px rgba(220, 53, 69, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-submit:disabled::before {
+  display: none;
+}
 .auth-toggle {
   color: rgba(255, 255, 255, 0.7);
   text-align: center;

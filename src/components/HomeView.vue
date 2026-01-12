@@ -786,9 +786,16 @@ const createGradientEffects = () => {
       if (entry.isIntersecting) {
         entry.target.classList.remove('reveal-hidden')
         entry.target.classList.add('reveal-visible')
+        // Für Stat Widgets: Nur einmal animieren, dann Observer entfernen (festbleiben)
+        if (entry.target.classList.contains('stat-widget')) {
+          observer.unobserve(entry.target)
+        }
       } else {
-        entry.target.classList.remove('reveal-visible')
-        entry.target.classList.add('reveal-hidden')
+        // Andere Elemente (nicht Widgets) faden weg beim Hochscrollen
+        if (!entry.target.classList.contains('stat-widget')) {
+          entry.target.classList.remove('reveal-visible')
+          entry.target.classList.add('reveal-hidden')
+        }
       }
     })
   }, observerOptions)
