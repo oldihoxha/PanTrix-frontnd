@@ -48,7 +48,10 @@ class AuthService {
       const token = response.data.token || response.data.access_token
 
       if (!token) {
-        throw new Error('Kein Token vom Server erhalten')
+        // Erstelle einen Error und leite ihn direkt an handleError weiter
+        const error: any = new Error('Kein Token vom Server erhalten')
+        error.isTokenError = true
+        throw error
       }
 
       // Token speichern
@@ -56,6 +59,10 @@ class AuthService {
 
       return response.data
     } catch (error: any) {
+      // Wenn es bereits ein bearbeiteter Error ist, werfe ihn direkt
+      if (error.isTokenError) {
+        throw this.handleError(error)
+      }
       throw this.handleError(error)
     }
   }
@@ -69,7 +76,10 @@ class AuthService {
       const token = response.data.token || response.data.access_token
 
       if (!token) {
-        throw new Error('Kein Token vom Server erhalten')
+        // Behandle Token-Fehler
+        const error: any = new Error('Kein Token vom Server erhalten')
+        error.isTokenError = true
+        throw error
       }
 
       // Token speichern
@@ -77,6 +87,10 @@ class AuthService {
 
       return response.data
     } catch (error: any) {
+      // Wende handleError auf alle Fehler an
+      if (error.isTokenError) {
+        throw this.handleError(error)
+      }
       throw this.handleError(error)
     }
   }

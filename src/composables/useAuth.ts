@@ -23,7 +23,8 @@ export function useAuth() {
 
       const token = response.token || response.access_token
       if (!token) {
-        throw new Error('Kein Token vom Server erhalten')
+        errorMessage.value = 'Kein Token vom Server erhalten'
+        return false
       }
 
       authToken.value = token
@@ -52,7 +53,8 @@ export function useAuth() {
 
       const token = response.token || response.access_token
       if (!token) {
-        throw new Error('Kein Token vom Server erhalten')
+        errorMessage.value = 'Kein Token vom Server erhalten'
+        return false
       }
 
       authToken.value = token

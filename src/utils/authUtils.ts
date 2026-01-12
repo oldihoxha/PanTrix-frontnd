@@ -1,25 +1,12 @@
 import authService from '../services/authService'
 
 /**
- * Überprüfe ob Benutzer angemeldet ist
- */
-export function isUserAuthenticated(): boolean {
-  return authService.isAuthenticated()
-}
-
-/**
  * Hole aktuellen Token
  */
 export function getCurrentToken(): string | null {
   return authService.getToken()
 }
 
-/**
- * Logout Benutzer
- */
-export async function logoutUser(): Promise<void> {
-  await authService.logout()
-}
 
 /**
  * Überprüfe ob Token gültig ist (einfache Überprüfung)
@@ -40,7 +27,11 @@ export function isTokenValid(): boolean {
     }
 
     // Dekodiere Payload
-    const payload = JSON.parse(atob(parts[1]))
+    const decodedPart = parts[1]
+    if (!decodedPart) {
+      return false
+    }
+    const payload = JSON.parse(atob(decodedPart))
 
     // Überprüfe Ablauf-Zeit
     if (payload.exp) {
@@ -72,7 +63,12 @@ export function decodeToken(token?: string): any {
       return null
     }
 
-    return JSON.parse(atob(parts[1]))
+    const decodedPart = parts[1]
+    if (!decodedPart) {
+      return null
+    }
+
+    return JSON.parse(atob(decodedPart))
   } catch (error) {
     console.error('Token Dekodierung Fehler:', error)
     return null
