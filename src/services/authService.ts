@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
+import { setupAxiosInterceptors } from './axiosInterceptors'
 
 export interface LoginPayload {
   email: string
@@ -29,14 +30,29 @@ class AuthService {
   private apiClient: AxiosInstance
   private baseURL: string
 
-  constructor(baseURL: string = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com') {
-    this.baseURL = baseURL
+  constructor(baseURL: string = '') {
+    // In Entwicklung: Nutze relative URLs für Proxy
+    // In Produktion: Nutze absolute URLs
+    if (import.meta.env.DEV) {
+      this.baseURL = ''
+    } else {
+      this.baseURL = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
+    }
+
+    // Wenn baseURL als Parameter übergeben wird, nutze diesen
+    if (baseURL) {
+      this.baseURL = baseURL
+    }
+
     this.apiClient = axios.create({
       baseURL: this.baseURL,
       headers: {
         'Content-Type': 'application/json'
       }
     })
+
+    // Setup Interceptors für diesen Client
+    setupAxiosInterceptors(this.apiClient)
   }
 
   /**

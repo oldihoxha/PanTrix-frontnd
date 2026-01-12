@@ -4,9 +4,9 @@ import axios from 'axios'
 import HomeView from './HomeView.vue'
 import * as THREE from 'three'
 import { useAuth } from '../composables/useAuth'
-import { setupAxiosInterceptors } from '../services/axiosInterceptors'
 
-const baseUrl = import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com'
+// In Entwicklung: Nutze relative URLs für Proxy, in Produktion: absolute URLs
+const baseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com')
 const products = ref<any[]>([])
 
 // ...existing code...
@@ -26,8 +26,6 @@ const {
   setCurrentUser
 } = useAuth()
 
-// Initialisiere Auth Interceptors
-setupAxiosInterceptors(axios)
 
 // Zusätzliche UI-States
 const showAuthModal = ref(false)
