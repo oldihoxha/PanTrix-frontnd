@@ -1,5 +1,6 @@
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import axios, { AxiosError } from 'axios'
+import axios from 'axios'
 import HomeView from './HomeView.vue'
 import * as THREE from 'three'
 import { useAuth } from '../composables/useAuth'
@@ -37,6 +38,7 @@ let camera: THREE.OrthographicCamera
 let renderer: THREE.WebGLRenderer
 let apples: THREE.Mesh[] = []
 let animationFrameId: number | null = null
+let heroSectionHeight = 0
 
 let viewportWidthWorld = 0
 let viewportHeightWorld = 0
@@ -416,7 +418,7 @@ const init3DScene = () => {
 
   // Anime Emojis
   const animateEmojis = () => {
-    const animationFrameId = requestAnimationFrame(animateEmojis)
+    animationFrameId = requestAnimationFrame(animateEmojis)
 
     const width = window.innerWidth
     const height = window.innerHeight
@@ -521,13 +523,9 @@ const onWindowResize = () => {
   const top = viewportHeightWorld / 2
   const bottom = -viewportHeightWorld / 2
 
-  // @ts-expect-error - update orthographic camera frustum
   camera.left = left
-  // @ts-expect-error
   camera.right = right
-  // @ts-expect-error
   camera.top = top
-  // @ts-expect-error
   camera.bottom = bottom
   camera.updateProjectionMatrix()
 
