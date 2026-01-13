@@ -374,7 +374,6 @@ const getTodayStringHelper = (): string => {
   const day = String(today.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
-}
 
 /**
  * Zählt aktive Produkte nach Kategorie
@@ -586,6 +585,11 @@ const totalProducts = computed(() => getTotalProductsCount())
  * Anzahl verfügbarer (nicht abgelaufener) Produkte
  */
 const availableProducts = computed(() => getAvailableProductsCount())
+
+/**
+ * Anzahl abgelaufener Produkte
+ */
+const expiredProducts = computed(() => getExpiredProductsCount())
 
 
 /**
