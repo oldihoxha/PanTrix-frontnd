@@ -1699,5 +1699,6 @@ const rescueProduct = async (id: number) => {
     font-size: 0.7rem;
   }
 }
-</style>
+
+</style>}
 
