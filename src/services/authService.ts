@@ -208,9 +208,11 @@ class AuthService {
     } else if (err.request) {
       // Request wurde gesendet, aber keine Antwort erhalten
       errorMessage = 'Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung'
-    } else {
+    } else if (err instanceof Error && err.message) {
       // Fehler beim Erstellen des Request
-      errorMessage = (err as Error).message || 'Ein unbekannter Fehler ist aufgetreten'
+      errorMessage = err.message
+    } else {
+      errorMessage = 'Ein unbekannter Fehler ist aufgetreten'
     }
 
     // Werfe Error mit Nachricht

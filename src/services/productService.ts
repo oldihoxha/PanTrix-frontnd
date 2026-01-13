@@ -3,6 +3,11 @@ import type { AxiosInstance } from 'axios'
 import type { Product, ProductResponse } from '../types'
 import authService from './authService'
 
+export interface ProductError {
+  message: string
+  status?: number
+}
+
 class ProductService {
   private apiClient: AxiosInstance
 
@@ -41,6 +46,28 @@ class ProductService {
   }
 
   /**
+   * Fehlerbehandlung für API-Responses
+   */
+  private handleError(error: unknown): ProductError {
+    const err = error as Record<string, unknown>
+    const defaultMessage = 'Ein Fehler ist aufgetreten'
+
+    if (err?.response) {
+      const response = err.response as Record<string, unknown>
+      const data = response.data as Record<string, unknown> | undefined
+      return {
+        message: (data?.message as string) || defaultMessage,
+        status: response.status as number
+      }
+    }
+
+    return {
+      message: defaultMessage,
+      status: undefined
+    }
+  }
+
+  /**
    * Hole alle Produkte des aktuellen Benutzers
    */
   async getProducts(): Promise<Product[]> {
@@ -48,12 +75,8 @@ class ProductService {
       const response = await this.apiClient.get<ProductResponse>('/api/products')
       return Array.isArray(response.data.data) ? response.data.data : [response.data.data]
     } catch (error: unknown) {
-      const err = error as Record<string, unknown>
       console.error('Fehler beim Abrufen der Produkte:', error)
-      throw {
-        message: (err.response as Record<string, unknown>)?.data?.message || 'Fehler beim Laden der Produkte',
-        status: (err.response as Record<string, unknown>)?.status
-      }
+      throw this.handleError(error)
     }
   }
 
@@ -65,12 +88,8 @@ class ProductService {
       const response = await this.apiClient.post<ProductResponse>('/api/products', product)
       return response.data.data as Product
     } catch (error: unknown) {
-      const err = error as Record<string, unknown>
       console.error('Fehler beim Erstellen des Produkts:', error)
-      throw {
-        message: (err.response as Record<string, unknown>)?.data?.message || 'Fehler beim Hinzufügen des Produkts',
-        status: (err.response as Record<string, unknown>)?.status
-      }
+      throw this.handleError(error)
     }
   }
 
@@ -82,12 +101,8 @@ class ProductService {
       const response = await this.apiClient.put<ProductResponse>(`/api/products/${id}`, product)
       return response.data.data as Product
     } catch (error: unknown) {
-      const err = error as Record<string, unknown>
       console.error('Fehler beim Aktualisieren des Produkts:', error)
-      throw {
-        message: (err.response as Record<string, unknown>)?.data?.message || 'Fehler beim Aktualisieren des Produkts',
-        status: (err.response as Record<string, unknown>)?.status
-      }
+      throw this.handleError(error)
     }
   }
 
@@ -98,12 +113,8 @@ class ProductService {
     try {
       await this.apiClient.delete(`/api/products/${id}`)
     } catch (error: unknown) {
-      const err = error as Record<string, unknown>
       console.error('Fehler beim Löschen des Produkts:', error)
-      throw {
-        message: (err.response as Record<string, unknown>)?.data?.message || 'Fehler beim Löschen des Produkts',
-        status: (err.response as Record<string, unknown>)?.status
-      }
+      throw this.handleError(error)
     }
   }
 
@@ -117,12 +128,8 @@ class ProductService {
       })
       return response.data.data as Product
     } catch (error: unknown) {
-      const err = error as Record<string, unknown>
       console.error('Fehler beim Markieren des Produkts:', error)
-      throw {
-        message: (err.response as Record<string, unknown>)?.data?.message || 'Fehler beim Markieren des Produkts',
-        status: (err.response as Record<string, unknown>)?.status
-      }
+      throw this.handleError(error)
     }
   }
 
@@ -134,12 +141,8 @@ class ProductService {
       const response = await this.apiClient.get<ProductResponse>(`/api/products/${id}`)
       return response.data.data as Product
     } catch (error: unknown) {
-      const err = error as Record<string, unknown>
       console.error('Fehler beim Abrufen des Produkts:', error)
-      throw {
-        message: (err.response as Record<string, unknown>)?.data?.message || 'Fehler beim Abrufen des Produkts',
-        status: (err.response as Record<string, unknown>)?.status
-      }
+      throw this.handleError(error)
     }
   }
 }
