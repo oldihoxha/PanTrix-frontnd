@@ -1,13 +1,12 @@
-<script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import HomeView from './HomeView.vue'
 import * as THREE from 'three'
 import { useAuth } from '../composables/useAuth'
 
 // In Entwicklung: Nutze relative URLs für Proxy, in Produktion: absolute URLs
 const baseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com')
-const products = ref<any[]>([])
+const products = ref<object[]>([])
 
 // ...existing code...
 
@@ -15,14 +14,11 @@ const products = ref<any[]>([])
 const {
   isLoggedIn,
   currentUser,
-  authToken,
   isLoading,
   errorMessage,
-  isAuthenticated,
   login,
   register,
   logout: logoutUser,
-  initialize: initializeAuth,
   setCurrentUser
 } = useAuth()
 
@@ -39,10 +35,9 @@ const passwordConfirm = ref('')
 let scene: THREE.Scene
 let camera: THREE.OrthographicCamera
 let renderer: THREE.WebGLRenderer
-let apples: any[] = []
+let apples: THREE.Mesh[] = []
 let animationFrameId: number | null = null
 
-let heroSectionHeight = 0
 let viewportWidthWorld = 0
 let viewportHeightWorld = 0
 
@@ -420,9 +415,8 @@ const init3DScene = () => {
   }, 600) // Alle 600ms das nächste Emoji einfärben (vorher 300ms)
 
   // Anime Emojis
-  let emojiAnimationFrame: number | null = null
   const animateEmojis = () => {
-    emojiAnimationFrame = requestAnimationFrame(animateEmojis)
+    const animationFrameId = requestAnimationFrame(animateEmojis)
 
     const width = window.innerWidth
     const height = window.innerHeight
@@ -527,13 +521,13 @@ const onWindowResize = () => {
   const top = viewportHeightWorld / 2
   const bottom = -viewportHeightWorld / 2
 
-  // @ts-ignore - update orthographic camera frustum
+  // @ts-expect-error - update orthographic camera frustum
   camera.left = left
-  // @ts-ignore
+  // @ts-expect-error
   camera.right = right
-  // @ts-ignore
+  // @ts-expect-error
   camera.top = top
-  // @ts-ignore
+  // @ts-expect-error
   camera.bottom = bottom
   camera.updateProjectionMatrix()
 

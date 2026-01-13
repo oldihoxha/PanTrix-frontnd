@@ -31,7 +31,7 @@
       <section class="section my-pantry-section">
         <div class="section-content">
           <h2>Meine Vorratskammer</h2>
-          <PantryInterfaceModal @update:products="onProductsUpdate" />
+          <PantryInterfaceModal :products="products" @update:products="onProductsUpdate" />
         </div>
       </section>
 
@@ -74,19 +74,20 @@
                 <div class="progress-bar-container">
                   <div class="progress-bar">
                     <!-- Segment für jede Kategorie - nur anzeigen wenn Produkte existieren -->
-                    <div
-                      v-if="totalProducts > 0"
-                      v-for="category in ['Gemüse', 'Obst', 'Fleisch', 'Milchprodukte', 'Sonstiges']"
-                      :key="category"
-                      class="progress-segment"
-                      :style="{
-                        width: ((getCategoryCount(category)) / totalProducts * 100) + '%',
-                        backgroundColor: getCategoryColor(category),
-                        transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                        opacity: getCategoryCount(category) > 0 ? 1 : 0
-                      }"
-                      :title="`${category}: ${getCategoryCount(category)}`"
-                    />
+                    <template v-if="totalProducts > 0">
+                      <div
+                        v-for="category in ['Gemüse', 'Obst', 'Fleisch', 'Milchprodukte', 'Sonstiges']"
+                        :key="category"
+                        class="progress-segment"
+                        :style="{
+                          width: ((getCategoryCount(category)) / totalProducts * 100) + '%',
+                          backgroundColor: getCategoryColor(category),
+                          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                          opacity: getCategoryCount(category) > 0 ? 1 : 0
+                        }"
+                        :title="`${category}: ${getCategoryCount(category)}`"
+                      />
+                    </template>
                     <!-- Leerer Balken wenn keine Produkte -->
                     <div
                       v-if="totalProducts === 0"
@@ -312,20 +313,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
 import PantryInterfaceModal from './PantryInterfaceModal.vue'
+import { useProducts } from '../composables/useProducts'
+import { useStatistics } from '../composables/useStatistics'
+import type { Product } from '../types'
 
 interface Props {
   currentUser: string
   onLogout: () => void
-}
-
-interface Product {
-  id: number
-  name: string
-  category: string
-  expiryDate: string
-  quantity: number
-  addedAt?: string  // YYYY-MM-DD format
-  status?: 'aktiv' | 'verbraucht' | 'entsorgt'  // default: 'aktiv'
 }
 
 interface Alert {
@@ -338,6 +332,11 @@ interface Alert {
 }
 
 const props = defineProps<Props>()
+
+
+// Nutze Products und Statistics Composables
+const { loadProducts, products: backendProducts, errorMessage: productError } = useProducts()
+const { loadStatistics, errorMessage: statsError } = useStatistics()
 
 // Products from Pantry
 const products = ref<Product[]>([])
@@ -368,26 +367,27 @@ const getDayOfWeek = (date: Date): number => {
 /**
  * Konvertiert heutiges Datum zu YYYY-MM-DD String (lokale Zeit, nicht UTC)
  */
-const getTodayString = (): string => {
+const getTodayStringHelper = (): string => {
   const today = new Date()
   const year = today.getFullYear()
   const month = String(today.getMonth() + 1).padStart(2, '0')
   const day = String(today.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+}
 
 /**
  * Zählt aktive Produkte nach Kategorie
  */
 const getProductsByCategory = (category: string): number => {
-  return products.value.filter(p => p.category === category && (p.status === 'aktiv' || !p.status)).length
+  return products.value.filter(p => p.category === category && (p.status === 'fresh' || !p.status)).length
 }
 
 /**
  * Zählt alle aktiven Produkte
  */
 const getActiveProductsCount = (): number => {
-  return products.value.filter(p => p.status === 'aktiv' || !p.status).length
+  return products.value.filter(p => p.status === 'fresh' || !p.status).length
 }
 
 /**
@@ -403,7 +403,7 @@ const getTotalProductsCount = (): number => {
 const getSavedProductsCount = (): number => {
   const today = new Date()
   return products.value.filter(p => {
-    if (p.status !== 'verbraucht') return false
+    if (p.status !== 'saved') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today
   }).length
@@ -426,7 +426,7 @@ const getExpiringProductsCount = (): number => {
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
   return products.value.filter(p => {
-    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    if (p.status !== 'fresh' && p.status !== undefined && p.status !== 'expiring_soon') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today && expiryDate <= in7Days
   }).length
@@ -440,7 +440,7 @@ const getExpiringIn2Days = (): number => {
   const in2Days = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000)
 
   return products.value.filter(p => {
-    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    if (p.status !== 'fresh' && p.status !== undefined && p.status !== 'expiring_soon') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today && expiryDate <= in2Days
   }).length
@@ -454,7 +454,7 @@ const getExpiringIn3Days = (): number => {
   const in3Days = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
 
   return products.value.filter(p => {
-    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    if (p.status !== 'fresh' && p.status !== undefined && p.status !== 'expiring_soon') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today && expiryDate <= in3Days
   }).length
@@ -469,7 +469,7 @@ const getExpiringIn5Days = (): number => {
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
   return products.value.filter(p => {
-    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    if (p.status !== 'fresh' && p.status !== undefined && p.status !== 'expiring_soon') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate > in3Days && expiryDate <= in7Days
   }).length
@@ -481,7 +481,7 @@ const getExpiringIn5Days = (): number => {
 const getExpiredProductsCount = (): number => {
   const today = new Date()
   return products.value.filter(p => {
-    if (p.status !== 'aktiv' && p.status !== undefined) return false
+    if (p.status === 'saved' || p.status === 'expired') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate < today
   }).length
@@ -522,11 +522,11 @@ const getProductsByWeekdayAndCategory = (): Record<string, Record<string, number
   products.value.forEach(p => {
     // DEBUG: Zeige Produktdaten in der Konsole
     if (p.name) {
-      console.log(`Produkt: ${p.name}, Kategorie: ${p.category}, addedAt: ${p.addedAt}, Status: ${p.status}`)
+      console.log(`Produkt: ${p.name}, Kategorie: ${p.category}, addedDate: ${p.addedDate}, Status: ${p.status}`)
     }
 
-    if (!p.addedAt || !p.category) return
-    const date = parseExpiryDate(p.addedAt)
+    if (!p.addedDate || !p.category) return
+    const date = parseExpiryDate(p.addedDate)
     const dayIndex = getDayOfWeek(date)
 
     if (dayIndex >= 0 && dayIndex < weekdays.length) {
@@ -583,24 +583,10 @@ const categoryStats = computed(() => {
 const totalProducts = computed(() => getTotalProductsCount())
 
 /**
- * Anzahl Produkte, die bald ablaufen
- */
-const expiringProducts = computed(() => getExpiringProductsCount())
-
-/**
- * Anzahl abgelaufener Produkte
- */
-const expiredProducts = computed(() => getExpiredProductsCount())
-
-/**
  * Anzahl verfügbarer (nicht abgelaufener) Produkte
  */
 const availableProducts = computed(() => getAvailableProductsCount())
 
-/**
- * Anzahl geretteter Produkte (verbraucht, aber nicht abgelaufen)
- */
-const savedProducts = computed(() => getSavedProductsCount())
 
 /**
  * Kapazitätsauslastung in Prozent
@@ -718,9 +704,8 @@ const logout = () => {
 }
 
 // Handle products update from PantryInterfaceModal
-
-const onProductsUpdate = (updatedProducts: any[]) => {
-  products.value = updatedProducts as Product[]
+const onProductsUpdate = (updatedProducts: Product[]) => {
+  products.value = updatedProducts
 }
 
 // Animate Counter Numbers on Mount
@@ -755,7 +740,22 @@ watch(products, () => {
   animateCounter(getTotalProductsCount(), displayCount4, 800)
 }, { deep: true })
 
-onMounted(() => {
+onMounted(async () => {
+  // Lade Produkte vom Backend
+  try {
+    await loadProducts()
+    products.value = backendProducts.value
+  } catch (error) {
+    console.error('Fehler beim Laden der Produkte:', productError.value || error)
+  }
+
+  // Lade Statistiken vom Backend
+  try {
+    await loadStatistics()
+  } catch (error) {
+    console.error('Fehler beim Laden der Statistiken:', statsError.value || error)
+  }
+
   // Start counter animations with staggered delay
   // 1. Gesamte Produkte (aktive)
   setTimeout(() => animateCounter(getActiveProductsCount(), displayCount1), 300)

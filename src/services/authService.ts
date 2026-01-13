@@ -48,7 +48,9 @@ class AuthService {
       baseURL: this.baseURL,
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      // Nicht withCredentials nutzen für öffentliche Endpoints
+      withCredentials: false
     })
 
     // Setup Interceptors für diesen Client
@@ -60,25 +62,24 @@ class AuthService {
    */
   async login(payload: LoginPayload): Promise<AuthResponse> {
     try {
+      console.log('Login versucht mit:', payload.email)
       const response = await this.apiClient.post<AuthResponse>('/auth/login', payload)
+      console.log('Login Response:', response.data)
+
       const token = response.data.token || response.data.access_token
 
       if (!token) {
-        // Erstelle einen Error und leite ihn direkt an handleError weiter
-        const error: any = new Error('Kein Token vom Server erhalten')
-        error.isTokenError = true
-        throw error
+        console.error('Kein Token in Response erhalten')
+        throw new Error('Kein Token vom Server erhalten')
       }
 
       // Token speichern
       this.setToken(token)
+      console.log('Token gespeichert und User angemeldet')
 
       return response.data
-    } catch (error: any) {
-      // Wenn es bereits ein bearbeiteter Error ist, werfe ihn direkt
-      if (error.isTokenError) {
-        throw this.handleError(error)
-      }
+    } catch (error: unknown) {
+      console.error('Login Error vollständig:', error)
       throw this.handleError(error)
     }
   }
@@ -88,25 +89,24 @@ class AuthService {
    */
   async register(payload: RegisterPayload): Promise<AuthResponse> {
     try {
+      console.log('Registrierung versucht mit:', payload.email)
       const response = await this.apiClient.post<AuthResponse>('/auth/register', payload)
+      console.log('Register Response:', response.data)
+
       const token = response.data.token || response.data.access_token
 
       if (!token) {
-        // Behandle Token-Fehler
-        const error: any = new Error('Kein Token vom Server erhalten')
-        error.isTokenError = true
-        throw error
+        console.error('Kein Token in Response erhalten')
+        throw new Error('Kein Token vom Server erhalten')
       }
 
       // Token speichern
       this.setToken(token)
+      console.log('Token gespeichert und User registriert')
 
       return response.data
-    } catch (error: any) {
-      // Wende handleError auf alle Fehler an
-      if (error.isTokenError) {
-        throw this.handleError(error)
-      }
+    } catch (error: unknown) {
+      console.error('Register Error vollständig:', error)
       throw this.handleError(error)
     }
   }
@@ -172,46 +172,49 @@ class AuthService {
   /**
    * Hole Fehler-Details
    */
-  private handleError(error: any): AuthError {
-    const errorObj: AuthError = {
-      message: 'Ein Fehler ist aufgetreten'
-    }
+  private handleError(error: unknown): never {
+    let errorMessage = 'Ein Fehler ist aufgetreten'
+    const err = error as Record<string, unknown>
 
-    if (error.response) {
-      errorObj.status = error.response.status
+    if (err.response) {
+      // Server hat geantwortet mit Error-Status
+      const response = err.response as Record<string, unknown>
+      const status = response.status as number
 
-      // Spezifische Fehlermeldungen basierend auf Status
-      switch (error.response.status) {
+      switch (status) {
         case 400:
-          errorObj.message = error.response.data?.message || 'Ungültige Eingabe'
+          errorMessage = (response.data as Record<string, unknown>)?.message as string || 'Ungültige Eingabe'
           break
         case 401:
-          errorObj.message = 'E-Mail oder Passwort ist falsch'
+          errorMessage = 'E-Mail oder Passwort ist falsch'
           break
         case 404:
-          errorObj.message = 'Benutzer nicht gefunden'
+          errorMessage = 'Benutzer nicht gefunden'
           break
         case 409:
-          errorObj.message = 'Diese E-Mail ist bereits registriert'
+          errorMessage = 'Diese E-Mail ist bereits registriert'
           break
         case 422:
-          errorObj.message = error.response.data?.message || 'Validierungsfehler'
+          errorMessage = (response.data as Record<string, unknown>)?.message as string || 'Validierungsfehler'
           break
         case 500:
-          errorObj.message = 'Serverfehler. Bitte versuchen Sie es später erneut'
+          errorMessage = 'Serverfehler. Bitte versuchen Sie es später erneut'
           break
         default:
-          errorObj.message = error.response.data?.message || 'Ein Fehler ist aufgetreten'
+          errorMessage = (response.data as Record<string, unknown>)?.message as string || 'Ein Fehler ist aufgetreten'
       }
-    } else if (error.message === 'Kein Token vom Server erhalten') {
-      errorObj.message = 'Login erfolgreich, aber Token konnte nicht empfangen werden'
-    } else if (error.request) {
-      errorObj.message = 'Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung'
+    } else if ((err as Record<string, unknown>).message === 'Kein Token vom Server erhalten') {
+      errorMessage = 'Login erfolgreich, aber Token konnte nicht empfangen werden'
+    } else if (err.request) {
+      // Request wurde gesendet, aber keine Antwort erhalten
+      errorMessage = 'Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung'
     } else {
-      errorObj.message = error.message || 'Ein unbekannter Fehler ist aufgetreten'
+      // Fehler beim Erstellen des Request
+      errorMessage = (err as Error).message || 'Ein unbekannter Fehler ist aufgetreten'
     }
 
-    return errorObj
+    // Werfe Error mit Nachricht
+    throw new Error(errorMessage)
   }
 }
 

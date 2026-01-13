@@ -32,8 +32,9 @@ export function useAuth() {
       isLoggedIn.value = true
 
       return true
-    } catch (error: any) {
-      errorMessage.value = error.message || 'Login fehlgeschlagen'
+    } catch (error: unknown) {
+      const err = error as Error
+      errorMessage.value = err.message || 'Login fehlgeschlagen'
       console.error('Login Error:', error)
       return false
     } finally {
@@ -62,8 +63,9 @@ export function useAuth() {
       isLoggedIn.value = true
 
       return true
-    } catch (error: any) {
-      errorMessage.value = error.message || 'Registrierung fehlgeschlagen'
+    } catch (error: unknown) {
+      const err = error as Error
+      errorMessage.value = err.message || 'Registrierung fehlgeschlagen'
       console.error('Register Error:', error)
       return false
     } finally {

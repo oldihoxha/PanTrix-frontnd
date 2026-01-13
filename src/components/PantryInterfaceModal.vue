@@ -74,16 +74,16 @@
               :key="product.id"
               class="product-card product-item"
             >
-              <button class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
+              <button v-if="product.id" class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
               <div v-if="canBeRescued(product.expiryDate)" class="rescue-btn-wrapper">
                 <button
-                  v-if="!product.rescued"
+                  v-if="product.id && product.status !== 'saved'"
                   class="rescue-btn"
                   @click="rescueProduct(product.id)"
                   title="Verzehrt - vor Verschwendung bewahrt">
                   🎯
                 </button>
-                <div v-else class="rescued-badge">✓ Verzehrt</div>
+                <div v-else-if="product.status === 'saved'" class="rescued-badge">✓ Verzehrt</div>
               </div>
               <div class="card-content">
                 <div class="product-name">{{ product.name }}</div>
@@ -105,16 +105,16 @@
               class="product-card product-item expired-product"
               :class="{ 'pulse-animation': true }"
             >
-              <button class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
+              <button v-if="product.id" class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
               <div class="rescue-btn-wrapper">
                 <button
-                  v-if="!product.rescued"
+                  v-if="product.id && product.status !== 'saved'"
                   class="rescue-btn"
                   @click="rescueProduct(product.id)"
                   title="Verzehrt - vor Verschwendung bewahrt">
                   🎯
                 </button>
-                <div v-else class="rescued-badge">✓ Verzehrt</div>
+                <div v-else-if="product.status === 'saved'" class="rescued-badge">✓ Verzehrt</div>
               </div>
               <div class="card-content">
                 <div class="product-name">{{ product.name }}</div>
@@ -212,17 +212,21 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useProducts } from '../composables/useProducts'
+import type { Product } from '../types'
 
-interface Product {
-  id: number
-  name: string
-  category: string
-  expiryDate: string
-  quantity: number
-  addedAt?: string
-  status?: string
-  rescued?: boolean
-}
+// Props vom Parent (HomeView)
+const props = defineProps<{
+  products: Product[]
+}>()
+
+// Nutze das useProducts Composable
+const {
+  addProduct: addProductToBackend,
+  updateProduct: updateProductInBackend,
+  deleteProduct: deleteProductFromBackend,
+  errorMessage
+} = useProducts()
 
 const emit = defineEmits<{
   'update:products': [products: Product[]]
@@ -238,7 +242,9 @@ const currentMonth = ref(new Date())
 const categories = ref(['Alle', 'Obst', 'Gemüse', 'Fleisch', 'Milchprodukte', 'Sonstiges'])
 const sortOptions = ref(['Neu hinzugefügt', 'Ablaufdatum', 'Kategorie', 'Name'])
 
-const products = ref<Product[]>([])
+// Nutze products vom Props statt lokal
+const products = computed(() => props.products)
+
 
 const rescuedProducts = ref<Product[]>([])
 
@@ -368,7 +374,7 @@ const filteredProducts = computed(() => {
 })
 
 const activeProducts = computed(() => {
-  return filteredProducts.value.filter(p => !isProductExpired(p.expiryDate) && p.status !== 'verbraucht')
+  return filteredProducts.value.filter(p => !isProductExpired(p.expiryDate) && p.status !== 'saved')
 })
 
 const expiredProducts = computed(() => {
@@ -394,7 +400,7 @@ const closeAddProductModal = () => {
   newProduct.value = { name: '', category: '', expiryDate: '', quantity: 1 }
 }
 
-const addProduct = () => {
+const addProduct = async () => {
   if (newProduct.value.name && newProduct.value.category && newProduct.value.expiryDate) {
     // Heutiges Datum im Format YYYY-MM-DD (lokale Zeit)
     const today = new Date()
@@ -404,23 +410,44 @@ const addProduct = () => {
     const todayString = `${year}-${month}-${day}`
 
     const product: Product = {
-      id: Math.max(...products.value.map(p => p.id), 0) + 1,
       name: newProduct.value.name,
       category: newProduct.value.category,
       expiryDate: newProduct.value.expiryDate,
       quantity: newProduct.value.quantity || 1,
-      addedAt: todayString,  // Heute hinzugefügt
-      status: 'aktiv'  // Standard Status
+      addedDate: todayString,
+      unit: 'Stück',
+      status: 'fresh'
     }
-    products.value.unshift(product)
-    emit('update:products', products.value)
-    closeAddProductModal()
+
+    try {
+      // Sende Produkt zum Backend
+      const createdProduct = await addProductToBackend(product)
+
+      // Aktualisiere Liste mit neuem Produkt vom Backend
+      const updatedProducts = [createdProduct, ...props.products]
+      emit('update:products', updatedProducts)
+      closeAddProductModal()
+    } catch (error) {
+      console.error('Fehler beim Hinzufügen des Produkts:', error)
+      alert(errorMessage.value || 'Fehler beim Hinzufügen des Produkts')
+    }
   }
 }
 
-const deleteProduct = (id: number) => {
-  products.value = products.value.filter(p => p.id !== id)
-  emit('update:products', products.value)
+const deleteProduct = async (id: number) => {
+  try {
+    // Wenn das Produkt eine ID vom Backend hat, lösche es dort
+    if (id) {
+      await deleteProductFromBackend(id)
+    }
+
+    // Entferne aus Liste
+    const updatedProducts = props.products.filter(p => p.id !== id)
+    emit('update:products', updatedProducts)
+  } catch (error) {
+    console.error('Fehler beim Löschen des Produkts:', error)
+    alert('Fehler beim Löschen des Produkts')
+  }
 }
 
 const formatDate = (dateString: string): string => {
@@ -455,17 +482,23 @@ const canBeRescued = (expiryDate: string): boolean => {
   return daysUntilExpiry >= 0 && daysUntilExpiry <= 3
 }
 
-const rescueProduct = (id: number) => {
-  const productIndex = products.value.findIndex(p => p.id === id)
+const rescueProduct = async (id: number) => {
+  const productIndex = props.products.findIndex(p => p.id === id)
   if (productIndex !== -1) {
-    const product: Product = { ...products.value[productIndex]! }
-    product.status = 'verbraucht'
-    product.rescued = true
-    // Speichere das Produkt in der geretteten Liste
-    rescuedProducts.value.push(product)
-    // Entferne das Produkt aus der aktiven Liste
-    products.value.splice(productIndex, 1)
-    emit('update:products', products.value)
+    try {
+      // Aktualisiere Status im Backend
+      const updatedProduct = await updateProductInBackend(id, { status: 'saved' })
+
+      // Speichere in der geretteten Liste
+      rescuedProducts.value.push(updatedProduct)
+
+      // Entferne aus aktiver Liste
+      const updatedProducts = props.products.filter(p => p.id !== id)
+      emit('update:products', updatedProducts)
+    } catch (error) {
+      console.error('Fehler beim Retten des Produkts:', error)
+      alert('Fehler beim Retten des Produkts')
+    }
   }
 }
 </script>
