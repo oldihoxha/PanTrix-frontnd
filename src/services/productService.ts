@@ -72,8 +72,8 @@ class ProductService {
    */
   async getProducts(): Promise<Product[]> {
     try {
-      const response = await this.apiClient.get<ProductResponse>('/api/products')
-      return Array.isArray(response.data.data) ? response.data.data : [response.data.data]
+      const response = await this.apiClient.get<Product[]>('/api/products')
+      return Array.isArray(response.data) ? response.data : [response.data]
     } catch (error: unknown) {
       console.error('Fehler beim Abrufen der Produkte:', error)
       throw this.handleError(error)
@@ -85,8 +85,8 @@ class ProductService {
    */
   async createProduct(product: Product): Promise<Product> {
     try {
-      const response = await this.apiClient.post<ProductResponse>('/api/products', product)
-      return response.data.data as Product
+      const response = await this.apiClient.post<Product>('/api/products', product)
+      return response.data
     } catch (error: unknown) {
       console.error('Fehler beim Erstellen des Produkts:', error)
       throw this.handleError(error)
@@ -98,8 +98,8 @@ class ProductService {
    */
   async updateProduct(id: number, product: Partial<Product>): Promise<Product> {
     try {
-      const response = await this.apiClient.put<ProductResponse>(`/api/products/${id}`, product)
-      return response.data.data as Product
+      const response = await this.apiClient.put<Product>(`/api/products/${id}`, product)
+      return response.data
     } catch (error: unknown) {
       console.error('Fehler beim Aktualisieren des Produkts:', error)
       throw this.handleError(error)
@@ -123,10 +123,8 @@ class ProductService {
    */
   async consumeProduct(id: number): Promise<Product> {
     try {
-      const response = await this.apiClient.put<ProductResponse>(`/api/products/${id}`, {
-        status: 'saved'
-      })
-      return response.data.data as Product
+      const response = await this.apiClient.post<Product>(`/api/products/${id}/consume`, {})
+      return response.data
     } catch (error: unknown) {
       console.error('Fehler beim Markieren des Produkts:', error)
       throw this.handleError(error)
@@ -138,8 +136,8 @@ class ProductService {
    */
   async getProduct(id: number): Promise<Product> {
     try {
-      const response = await this.apiClient.get<ProductResponse>(`/api/products/${id}`)
-      return response.data.data as Product
+      const response = await this.apiClient.get<Product>(`/api/products/${id}`)
+      return response.data
     } catch (error: unknown) {
       console.error('Fehler beim Abrufen des Produkts:', error)
       throw this.handleError(error)
