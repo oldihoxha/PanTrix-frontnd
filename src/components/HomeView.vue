@@ -123,8 +123,8 @@
                     <p class="widget-subtitle">in den nächsten 7 Tagen</p>
                   </div>
 
-                  <!-- Divider -->
-                  <div class="expiring-divider"></div>
+                  <!-- Divider - nur anzeigen wenn beide Werte > 0 -->
+                  <div v-if="(getExpiringIn2Days() + getExpiringIn5Days()) > 0 && getExpiringIn3Days() > 0" class="expiring-divider"></div>
 
                   <!-- 3 Tage -->
                   <div class="expiring-time-group">
@@ -386,7 +386,7 @@ const getProductsByCategory = (category: string): number => {
  * Zählt alle aktiven Produkte
  */
 const getActiveProductsCount = (): number => {
-  return products.value.filter(p => p.status === 'fresh' || !p.status).length
+  return products.value.filter(p => (p.status === 'fresh' || p.status === undefined || !p.status)).length
 }
 
 /**
@@ -402,7 +402,7 @@ const getTotalProductsCount = (): number => {
 const getSavedProductsCount = (): number => {
   const today = new Date()
   return products.value.filter(p => {
-    if (p.status !== 'saved') return false
+    if (!p || !p.status || p.status !== 'saved') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today
   }).length
@@ -425,7 +425,8 @@ const getExpiringProductsCount = (): number => {
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
   return products.value.filter(p => {
-    if (p.status !== 'fresh' && p.status !== undefined && p.status !== 'expiring_soon') return false
+    const status = p?.status || 'fresh'
+    if (status !== 'fresh' && status !== undefined && status !== 'expiring_soon') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today && expiryDate <= in7Days
   }).length
@@ -642,11 +643,11 @@ const currentDate = computed(() => {
 
 // Category Colors
 const categoryColors: Record<string, string> = {
-  'Obst': '#9D4EDD',      // Lila
-  'Fleisch': '#FF006E',    // Pink
-  'Milchprodukte': '#FFD60A', // Gelb
-  'Gemüse': '#06D6A0',    // Grün
-  'Sonstiges': '#00B4D8'  // Blau
+  'Gemüse': '#06D6A0',      // Grün
+  'Obst': '#9D4EDD',         // Lila
+  'Fleisch': '#FF6B6B',      // Rot
+  'Milchprodukte': '#FFD93D', // Gelb
+  'Sonstiges': '#4ECDC4'     // Cyan
 }
 
 const getCategoryColor = (category: string): string => {
@@ -1445,9 +1446,10 @@ const createGradientEffects = () => {
   /* Expiring Dual Display */
   .expiring-dual-display {
     display: flex;
+    flex-direction: column;
     gap: 1rem;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     width: 100%;
   }
 
@@ -1457,11 +1459,12 @@ const createGradientEffects = () => {
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
+    width: 100%;
   }
 
   .expiring-divider {
-    width: 1px;
-    height: 40px;
+    width: 60%;
+    height: 1px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 1px;
   }

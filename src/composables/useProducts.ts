@@ -38,8 +38,13 @@ export function useProducts() {
       const newProduct = await productService.createProduct(product)
       products.value.push(newProduct)
 
-      // Statistiken aktualisieren
-      await statisticsService.recalculateStatistics()
+      // Statistiken aktualisieren (optional - fehlender Endpoint ist nicht kritisch)
+      try {
+        await statisticsService.recalculateStatistics()
+      } catch (statsError) {
+        console.warn('Statistiken können nicht aktualisiert werden (Optional):', statsError)
+        // Nicht critical - weiter ohne Fehler
+      }
 
       return newProduct
     } catch (error: unknown) {
@@ -68,8 +73,12 @@ export function useProducts() {
         products.value[index] = updated
       }
 
-      // Statistiken aktualisieren
-      await statisticsService.recalculateStatistics()
+      // Statistiken aktualisieren (optional)
+      try {
+        await statisticsService.recalculateStatistics()
+      } catch (statsError) {
+        console.warn('Statistiken können nicht aktualisiert werden (Optional):', statsError)
+      }
 
       return updated
     } catch (error: unknown) {
@@ -95,8 +104,12 @@ export function useProducts() {
       // Entferne aus lokaler Liste
       products.value = products.value.filter(p => p.id !== id)
 
-      // Statistiken aktualisieren
-      await statisticsService.recalculateStatistics()
+      // Statistiken aktualisieren (optional)
+      try {
+        await statisticsService.recalculateStatistics()
+      } catch (statsError) {
+        console.warn('Statistiken können nicht aktualisiert werden (Optional):', statsError)
+      }
     } catch (error: unknown) {
       const err = error as Error
       errorMessage.value = err.message || 'Fehler beim Löschen des Produkts'
@@ -123,8 +136,12 @@ export function useProducts() {
         products.value[index] = updated
       }
 
-      // Statistiken aktualisieren
-      await statisticsService.recalculateStatistics()
+      // Statistiken aktualisieren (optional)
+      try {
+        await statisticsService.recalculateStatistics()
+      } catch (statsError) {
+        console.warn('Statistiken können nicht aktualisiert werden (Optional):', statsError)
+      }
 
       return updated
     } catch (error: unknown) {

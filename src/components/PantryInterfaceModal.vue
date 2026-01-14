@@ -7,13 +7,18 @@
       <div class="pantry-toolbar">
         <!-- Search Bar (Left) -->
         <div class="search-wrapper">
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Produkt suchen…"
-            v-model="searchQuery"
-          />
-          <span class="search-icon">🔍</span>
+          <div class="search-input-container">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Produkt suchen…"
+              v-model="searchQuery"
+              @focus="searchFocused = true"
+              @blur="searchFocused = false"
+            />
+            <span class="search-icon">🔍</span>
+            <div v-if="searchFocused" class="border-light"></div>
+          </div>
         </div>
 
         <!-- Category Tabs (Middle) -->
@@ -233,6 +238,7 @@ const emit = defineEmits<{
 }>()
 
 const searchQuery = ref('')
+const searchFocused = ref(false)
 const activeCategory = ref('Alle')
 const selectedSort = ref('Neu hinzugefügt')
 const showSortDropdown = ref(false)
@@ -457,11 +463,11 @@ const formatDate = (dateString: string): string => {
 }
 
 const categoryColors: Record<string, string> = {
-  'Obst': '#9D4EDD',      // Lila
-  'Fleisch': '#FF006E',    // Pink
-  'Milchprodukte': '#FFD60A', // Gelb
-  'Gemüse': '#06D6A0',    // Grün
-  'Sonstiges': '#00B4D8'  // Blau
+  'Gemüse': '#06D6A0',      // Grün - modern
+  'Obst': '#9D4EDD',         // Lila - elegant
+  'Fleisch': '#FF6B6B',      // Rot - energetisch
+  'Milchprodukte': '#FFD93D', // Gelb/Gold - warm
+  'Sonstiges': '#4ECDC4'     // Cyan/Türkis - frisch
 }
 
 const getCategoryColor = (category: string): string => {
@@ -619,12 +625,12 @@ const rescueProduct = async (id: number) => {
   border-radius: 12px;
   background: conic-gradient(
     from 0deg,
-    #9D4EDD 0%,
-    #FF006E 16.66%,
-    #FFD60A 33.33%,
-    #06D6A0 50%,
-    #00B4D8 66.66%,
-    #9D4EDD 100%
+    #06D6A0 0%,
+    #9D4EDD 20%,
+    #FF6B6B 40%,
+    #FFD93D 60%,
+    #4ECDC4 80%,
+    #06D6A0 100%
   );
   opacity: 0;
   transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -660,39 +666,104 @@ const rescueProduct = async (id: number) => {
   position: relative;
 }
 
+.search-input-container {
+  position: relative;
+  width: 100%;
+}
+
 .search-input {
   width: 100%;
-  padding: 0.65rem 1.8rem 0.65rem 1rem;
+  padding: 0.8rem 2rem 0.8rem 1.1rem;
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  font-size: 0.8rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
   font-family: inherit;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
 }
 
 .search-input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.border-light {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 0;
+  background: conic-gradient(
+    from 0deg,
+    #06D6A0 0%,
+    #9D4EDD 20%,
+    #FF6B6B 40%,
+    #FFD93D 60%,
+    #4ECDC4 80%,
+    #06D6A0 100%
+  );
+  padding: 1.5px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: rotateBorder 5s linear infinite;
+}
+
+@keyframes rotateBorder {
+  0% {
+    filter: drop-shadow(0 0 6px rgba(6, 214, 160, 0.5)) drop-shadow(0 0 2px rgba(6, 214, 160, 0.3));
+  }
+  20% {
+    filter: drop-shadow(0 0 8px rgba(6, 214, 160, 0.6)) drop-shadow(0 0 3px rgba(6, 214, 160, 0.4));
+  }
+  25% {
+    filter: drop-shadow(0 0 8px rgba(157, 78, 221, 0.6)) drop-shadow(0 0 3px rgba(157, 78, 221, 0.4));
+  }
+  45% {
+    filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.6)) drop-shadow(0 0 3px rgba(255, 107, 107, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(255, 217, 61, 0.6)) drop-shadow(0 0 3px rgba(255, 217, 61, 0.4));
+  }
+  75% {
+    filter: drop-shadow(0 0 8px rgba(78, 205, 196, 0.6)) drop-shadow(0 0 3px rgba(78, 205, 196, 0.4));
+  }
+  100% {
+    filter: drop-shadow(0 0 6px rgba(6, 214, 160, 0.5)) drop-shadow(0 0 2px rgba(6, 214, 160, 0.3));
+  }
 }
 
 .search-icon {
   position: absolute;
-  right: 0.8rem;
+  right: 1rem;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  opacity: 0.5;
-  font-size: 0.8rem;
+  opacity: 0.45;
+  font-size: 0.95rem;
+  transition: opacity 0.3s ease;
+}
+
+.search-input:focus ~ .search-icon {
+  opacity: 0.65;
 }
 
 

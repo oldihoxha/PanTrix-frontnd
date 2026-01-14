@@ -210,7 +210,7 @@ class AuthService {
       errorMessage = 'Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung'
     } else {
       // Fehler beim Erstellen des Request
-      errorMessage = (err as Error).message || 'Ein unbekannter Fehler ist aufgetreten'
+      errorMessage = (err as unknown as Error)?.message || 'Ein unbekannter Fehler ist aufgetreten'
     }
 
     // Werfe Error mit Nachricht

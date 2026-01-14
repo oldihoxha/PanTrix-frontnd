@@ -9,6 +9,7 @@ export function useStatistics() {
 
   /**
    * Lade Statistiken
+   * Hinweis: Der Statistics-Endpoint ist optional und nicht erforderlich
    */
   const loadStatistics = async (forceRefresh: boolean = false) => {
     isLoading.value = true
@@ -17,9 +18,10 @@ export function useStatistics() {
     try {
       statistics.value = await statisticsService.getStatistics(forceRefresh)
     } catch (error: unknown) {
-      const err = error as Error
-      errorMessage.value = err.message || 'Fehler beim Laden der Statistiken'
-      console.error(error)
+      // Statistiken sind optional - fehlende Endpoints sind nicht kritisch
+      console.warn('Statistiken können nicht geladen werden (Optional):', error)
+      // Nicht setzen von errorMessage, da dies optional ist
+      statistics.value = null
     } finally {
       isLoading.value = false
     }

@@ -45,8 +45,9 @@ class StatisticsService {
 
   /**
    * Hole Statistiken mit Cache
+   * Endpoint ist optional - wenn 404, gibt es null zurück
    */
-  async getStatistics(forceRefresh: boolean = false): Promise<Statistics> {
+  async getStatistics(forceRefresh: boolean = false): Promise<Statistics | null> {
     const now = Date.now()
 
     // Wenn Cache noch gültig und kein Force-Refresh
@@ -64,32 +65,28 @@ class StatisticsService {
       this.lastUpdateTime = now
       return this.statsCache
     } catch (error: any) {
-      console.error('Fehler beim Abrufen der Statistiken:', error)
-      throw {
-        message: error.response?.data?.message || 'Fehler beim Laden der Statistiken',
-        status: error.response?.status
+      // Statistiken sind optional - 404 ist OK
+      if (error?.response?.status === 404) {
+        return null // Endpoint existiert nicht
       }
+      // Für andere Fehler: still schweigen (keine console.error)
+      return null
     }
   }
 
   /**
    * Berechne Statistiken neu (nach Änderungen)
+   * Endpoint ist optional - ignoriere Fehler silent
    */
-  async recalculateStatistics(): Promise<Statistics> {
+  async recalculateStatistics(): Promise<Statistics | null> {
     try {
-      const response = await this.apiClient.post<StatisticsResponse>(
-        '/api/statistics/recalculate',
-        {}
-      )
+      const response = await this.apiClient.post<StatisticsResponse>('/api/statistics/recalculate', {})
       this.statsCache = response.data.data
       this.lastUpdateTime = Date.now()
       return this.statsCache
     } catch (error: any) {
-      console.error('Fehler beim Neu-Berechnen der Statistiken:', error)
-      throw {
-        message: error.response?.data?.message || 'Fehler beim Aktualisieren der Statistiken',
-        status: error.response?.status
-      }
+      // Statistiken sind optional - Fehler ignorieren
+      return null
     }
   }
 
