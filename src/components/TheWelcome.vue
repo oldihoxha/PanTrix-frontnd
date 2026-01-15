@@ -716,9 +716,11 @@ onMounted(() => {
       setCurrentUser(storedUser)
     }
   } else {
-    // Benutzer ist nicht angemeldet - initialisiere Landing Page
+    // Benutzer ist nicht angemeldet - zeige Landing Page
     console.log('Benutzer ist nicht angemeldet - zeige Landing Page')
     showHomePage.value = false
+
+    // Initialisiere 3D-Szene und Animationen für Landing Page
     loadProducts()
     init3DScene()
     window.addEventListener('resize', onWindowResize)
