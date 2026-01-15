@@ -25,19 +25,17 @@ export function setupAxiosInterceptors(apiClient: AxiosInstance): void {
   apiClient.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
-      // Wenn 401 Unauthorized, Token ist wahrscheinlich abgelaufen
+      // Wenn 401 Unauthorized kommt, wurde bereits im Backend durch JwtAuthenticationFilter abgewiesen
       if (error.response?.status === 401) {
-        // Prüfe ob es ein Redirect ist (CORS-Fehler in der Regel)
-        const errorMessage = error.message || ''
-        if (!errorMessage.includes('Cross-Origin') && !errorMessage.includes('CORS')) {
-          // Token löschen
-          localStorage.removeItem('authToken')
-          localStorage.removeItem('currentUser')
-          delete apiClient.defaults.headers.common['Authorization']
+        console.warn('401 Unauthorized - Token ist ungültig oder abgelaufen')
+        // Token löschen da ungültig
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('currentUser')
+        localStorage.removeItem('userId')
+        delete apiClient.defaults.headers.common['Authorization']
 
-          // Benutzer zur Login-Seite umleiten
-          window.location.href = '/login'
-        }
+        // Benutzer wird zur Landing Page neu geladen (durch App-Logic)
+        // window.location.reload() ist nicht nötig - Frontend wird neu gerendert
       }
 
       return Promise.reject(error)
