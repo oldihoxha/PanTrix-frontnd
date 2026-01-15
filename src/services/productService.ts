@@ -25,6 +25,9 @@ class ProductService {
         const token = authService.getToken()
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
+          console.log('Token im Header gesetzt:', token.substring(0, 20) + '...')
+        } else {
+          console.warn('Kein Token gefunden!')
         }
         return config
       },
@@ -36,9 +39,11 @@ class ProductService {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Token abgelaufen - logout
+          // Token abgelaufen - logout und Token löschen
+          console.error('401 Unauthorized - Token ist ungültig oder abgelaufen')
           authService.clearToken()
-          window.location.href = '/login'
+          // Reload die Seite, damit die Landing Page angezeigt wird
+          window.location.reload()
         }
         return Promise.reject(error)
       }

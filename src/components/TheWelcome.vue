@@ -4,6 +4,7 @@ import axios from 'axios'
 import HomeView from './HomeView.vue'
 import * as THREE from 'three'
 import { useAuth } from '../composables/useAuth'
+import authService from '../services/authService'
 
 // In Entwicklung: Nutze relative URLs für Proxy, in Produktion: absolute URLs
 const baseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://pantrix.onrender.com')
@@ -706,15 +707,24 @@ const startCubeAnimation = () => {
 
 
 onMounted(() => {
-  loadProducts()
-  init3DScene()
-  window.addEventListener('resize', onWindowResize)
-
-  // Starte die Cube-Animation nach dem Laden der Seite
-  startCubeAnimation()
-
-  // Starte die Haupt-Animationsschleife
-  animate3D()
+  // Überprüfe ob Benutzer bereits angemeldet ist
+  if (authService.isAuthenticated()) {
+    console.log('Benutzer ist angemeldet - zeige HomePage')
+    showHomePage.value = true
+    const storedUser = localStorage.getItem('currentUser')
+    if (storedUser) {
+      setCurrentUser(storedUser)
+    }
+  } else {
+    // Benutzer ist nicht angemeldet - initialisiere Landing Page
+    console.log('Benutzer ist nicht angemeldet - zeige Landing Page')
+    showHomePage.value = false
+    loadProducts()
+    init3DScene()
+    window.addEventListener('resize', onWindowResize)
+    startCubeAnimation()
+    animate3D()
+  }
 })
 
 onUnmounted(() => {
