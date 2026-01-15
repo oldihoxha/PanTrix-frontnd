@@ -75,6 +75,13 @@ class AuthService {
 
       // Token speichern
       this.setToken(token)
+
+      // Speichere userId vom Server (wichtig für Benutzer-Isolation!)
+      if (response.data.user && response.data.user.id) {
+        localStorage.setItem('userId', response.data.user.id.toString())
+        console.log('User ID gespeichert:', response.data.user.id)
+      }
+
       console.log('Token gespeichert und User angemeldet')
 
       return response.data
@@ -102,6 +109,13 @@ class AuthService {
 
       // Token speichern
       this.setToken(token)
+
+      // Speichere userId vom Server (wichtig für Benutzer-Isolation!)
+      if (response.data.user && response.data.user.id) {
+        localStorage.setItem('userId', response.data.user.id.toString())
+        console.log('User ID gespeichert:', response.data.user.id)
+      }
+
       console.log('Token gespeichert und User registriert')
 
       return response.data
@@ -154,8 +168,17 @@ class AuthService {
    */
   clearToken(): void {
     localStorage.removeItem('authToken')
+    localStorage.removeItem('userId')  // Lösche auch userId beim Logout!
     delete this.apiClient.defaults.headers.common['Authorization']
     delete axios.defaults.headers.common['Authorization']
+  }
+
+  /**
+   * Hole User ID
+   */
+  getUserId(): number | null {
+    const userId = localStorage.getItem('userId')
+    return userId ? parseInt(userId, 10) : null
   }
 
   /**
