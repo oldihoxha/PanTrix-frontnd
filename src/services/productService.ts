@@ -33,17 +33,16 @@ class ProductService {
       },
       (error) => Promise.reject(error)
     )
-
     // Setup Response-Interceptor für Fehler
     this.apiClient.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Token abgelaufen - logout und Token löschen
+          // Token abgelaufen - logge nur und übergebe Error dem Caller
           console.error('401 Unauthorized - Token ist ungültig oder abgelaufen')
           authService.clearToken()
-          // Reload die Seite, damit die Landing Page angezeigt wird
-          window.location.reload()
+          // NICHT window.location.reload() aufrufen! Das würde Benutzer rausfliegen!
+          // Der Frontend soll das Error selbst handhaben
         }
         return Promise.reject(error)
       }
