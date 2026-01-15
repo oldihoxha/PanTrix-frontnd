@@ -22,12 +22,13 @@ class ProductService {
     // Setup Request-Interceptor für Token
     this.apiClient.interceptors.request.use(
       (config) => {
-        const token = authService.getToken()
+        // Lese Token DIREKT aus localStorage - nicht vom authService!
+        const token = localStorage.getItem('authToken')
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
-          console.log('Token im Header gesetzt:', token.substring(0, 20) + '...')
+          console.log('Token im Header gesetzt (aus localStorage):', token.substring(0, 20) + '...')
         } else {
-          console.warn('Kein Token gefunden!')
+          console.warn('Kein Token in localStorage gefunden!')
         }
         return config
       },
