@@ -14,6 +14,7 @@ export interface Product {
   unit: string // z.B. "kg", "l", "Stück"
   status?: 'fresh' | 'expiring_soon' | 'expired' | 'saved' // Status des Produkts
   notes?: string
+  imageBase64?: string // Base64-kodiertes Produktbild
   createdAt?: string
   updatedAt?: string
 }

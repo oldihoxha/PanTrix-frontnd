@@ -78,23 +78,27 @@
               v-for="product in activeProducts"
               :key="product.id"
               class="product-card product-item"
+              :style="{
+                backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
+                backgroundColor: product.imageBase64 ? 'transparent' : getCategoryColor(product.category)
+              }"
             >
+              <div v-if="product.imageBase64" class="image-overlay"></div>
               <button v-if="product.id" class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
-              <div v-if="canBeRescued(product.expiryDate)" class="rescue-btn-wrapper">
-                <button
-                  v-if="product.id && product.status !== 'saved'"
-                  class="rescue-btn"
-                  @click="rescueProduct(product.id)"
-                  title="Verzehrt - vor Verschwendung bewahrt">
-                  🎯
-                </button>
-                <div v-else-if="product.status === 'saved'" class="rescued-badge">✓ Verzehrt</div>
-              </div>
               <div class="card-content">
                 <div class="product-name">{{ product.name }}</div>
-                <div class="category-dot" :style="{ backgroundColor: getCategoryColor(product.category) }" :title="product.category"></div>
                 <div class="product-expiry">{{ formatDate(product.expiryDate) }}</div>
-                <div v-if="canBeRescued(product.expiryDate)" class="days-left">{{ getDaysUntilExpiry(product.expiryDate) }}d übrig</div>
+              </div>
+              <button
+                v-if="product.id && product.status !== 'saved'"
+                class="consume-btn"
+                :style="{ backgroundColor: getCategoryColor(product.category) }"
+                @click="rescueProduct(product.id)"
+                title="Produkt als verbraucht markieren">
+                Aufgegessen
+              </button>
+              <div v-else-if="product.status === 'saved'" class="consume-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
+                ✓ Aufgegessen
               </div>
             </div>
           </div>
@@ -109,22 +113,27 @@
               :key="product.id"
               class="product-card product-item expired-product"
               :class="{ 'pulse-animation': true }"
+              :style="{
+                backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
+                backgroundColor: product.imageBase64 ? 'transparent' : '#333333'
+              }"
             >
+              <div v-if="product.imageBase64" class="image-overlay expired-overlay"></div>
               <button v-if="product.id" class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
-              <div class="rescue-btn-wrapper">
-                <button
-                  v-if="product.id && product.status !== 'saved'"
-                  class="rescue-btn"
-                  @click="rescueProduct(product.id)"
-                  title="Verzehrt - vor Verschwendung bewahrt">
-                  🎯
-                </button>
-                <div v-else-if="product.status === 'saved'" class="rescued-badge">✓ Verzehrt</div>
-              </div>
               <div class="card-content">
                 <div class="product-name">{{ product.name }}</div>
-                <div class="category-dot" :style="{ backgroundColor: getCategoryColor(product.category) }" :title="product.category"></div>
                 <div class="product-expiry expired-date">{{ formatDate(product.expiryDate) }}</div>
+              </div>
+              <button
+                v-if="product.id && product.status !== 'saved'"
+                class="consume-btn expired-consume"
+                :style="{ backgroundColor: getCategoryColor(product.category) }"
+                @click="rescueProduct(product.id)"
+                title="Produkt als verbraucht markieren">
+                Aufgegessen
+              </button>
+              <div v-else-if="product.status === 'saved'" class="consume-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
+                ✓ Aufgegessen
               </div>
             </div>
           </div>
@@ -210,13 +219,108 @@
             </div>
           </form>
         </div>
+
+        <!-- Image Preview Section (Right) -->
+        <div class="modal-image-section">
+          <div class="image-preview-container">
+            <h3>Produktbild</h3>
+            <div class="image-upload-buttons">
+              <button type="button" class="camera-btn" @click="openCameraInline" title="Foto mit Kamera machen">
+                📷 Foto machen
+              </button>
+              <button type="button" class="file-btn" @click="openFileInput" title="Bild aus Dateien wählen">
+                🖼️ Datei wählen
+              </button>
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleFileSelect"
+              />
+            </div>
+            <!-- Camera View Inline -->
+            <div v-if="showCameraView" class="camera-view-inline">
+              <video
+                v-if="!capturedImage"
+                ref="videoElement"
+                class="camera-video-inline"
+                autoplay
+                playsinline
+              ></video>
+              <img v-else :src="capturedImage" alt="Aufgenommenes Foto" class="captured-image-inline" />
+              <div class="camera-controls-inline">
+                <button v-if="!capturedImage" type="button" class="capture-btn-inline" @click="capturePhoto">
+                  📸 Foto
+                </button>
+                <div v-else class="captured-actions-inline">
+                  <button type="button" class="retry-btn-inline" @click="retryPhoto">
+                    🔄 Erneut
+                  </button>
+                  <button type="button" class="confirm-btn-inline" @click="confirmPhotoFromInline">
+                    ✓ OK
+                  </button>
+                </div>
+              </div>
+              <button type="button" class="close-camera-btn-inline" @click="closeCameraView">
+                ✕
+              </button>
+            </div>
+            <!-- Normal Preview -->
+            <template v-else>
+              <div v-if="newProduct.imageBase64" class="image-preview-large">
+                <img :src="newProduct.imageBase64" alt="Produktbild" />
+                <button type="button" class="remove-image-btn-large" @click="removeImage" title="Bild entfernen">
+                  🗑️ Löschen
+                </button>
+              </div>
+              <div v-else class="image-preview-empty">
+                <div class="empty-icon">📷</div>
+                <p>Klicken Sie auf "Foto machen" oder "Datei wählen" um ein Bild hinzuzufügen</p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div v-if="showCameraModal" class="camera-modal-overlay" @click.self="closeCameraModal">
+      <div class="camera-modal-content">
+        <div class="camera-header">
+          <h3>Produktfoto machen</h3>
+          <button class="close-camera-btn" @click="closeCameraModal">✕</button>
+        </div>
+        <div class="camera-body">
+          <video
+            v-if="!capturedImage"
+            ref="videoElement"
+            class="camera-video"
+            autoplay
+            playsinline
+          ></video>
+          <img v-else :src="capturedImage" alt="Aufgenommenes Foto" class="captured-image" />
+        </div>
+        <div class="camera-actions">
+          <button v-if="!capturedImage" type="button" class="capture-btn" @click="capturePhoto">
+            📸 Foto machen
+          </button>
+          <div v-else class="captured-actions">
+            <button type="button" class="retry-btn" @click="retryPhoto">
+              🔄 Wiederholen
+            </button>
+            <button type="button" class="confirm-btn" @click="confirmPhoto">
+              ✓ Bestätigen
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useProducts } from '../composables/useProducts'
 import type { Product } from '../types'
 
@@ -245,11 +349,28 @@ const showSortDropdown = ref(false)
 const showAddModal = ref(false)
 const currentMonth = ref(new Date())
 
+// Kamera- und Bild-Upload State
+const showCameraModal = ref(false)
+const showCameraView = ref(false)
+const videoElement = ref<HTMLVideoElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const capturedImage = ref<string>('')
+const stream = ref<MediaStream | null>(null)
+
 const categories = ref(['Alle', 'Obst', 'Gemüse', 'Fleisch', 'Milchprodukte', 'Sonstiges'])
 const sortOptions = ref(['Neu hinzugefügt', 'Ablaufdatum', 'Kategorie', 'Name'])
 
 // Nutze products vom Props statt lokal
-const products = computed(() => props.products)
+const products = computed(() => {
+  // Lade Bilder aus localStorage und füge sie zu den Produkten hinzu
+  return props.products.map(product => {
+    const storedImage = getImageFromStorage(product.id)
+    return {
+      ...product,
+      imageBase64: storedImage || product.imageBase64
+    }
+  })
+})
 
 
 const rescuedProducts = ref<Product[]>([])
@@ -399,11 +520,17 @@ const selectSort = (sort: string) => {
 const openAddProductModal = () => {
   showAddModal.value = true
   newProduct.value = { name: '', category: '', expiryDate: '', quantity: 1 }
+  // Disable body scroll wenn Modal offen ist
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
 }
 
 const closeAddProductModal = () => {
   showAddModal.value = false
   newProduct.value = { name: '', category: '', expiryDate: '', quantity: 1 }
+  // Enable body scroll wenn Modal geschlossen ist
+  document.body.style.overflow = 'auto'
+  document.documentElement.style.overflow = 'auto'
 }
 
 const addProduct = async () => {
@@ -414,6 +541,9 @@ const addProduct = async () => {
     const month = String(today.getMonth() + 1).padStart(2, '0')
     const day = String(today.getDate()).padStart(2, '0')
     const todayString = `${year}-${month}-${day}`
+
+    // Speichere das Bild vorübergehend
+    const imageToSave = newProduct.value.imageBase64 || ''
 
     const product: Product = {
       name: newProduct.value.name,
@@ -426,8 +556,15 @@ const addProduct = async () => {
     }
 
     try {
-      // Sende Produkt zum Backend
+      // Sende Produkt zum Backend (OHNE Bild, da Backend es möglicherweise nicht speichert)
       const createdProduct = await addProductToBackend(product)
+
+      // Speichere das Bild lokal im localStorage wenn vorhanden
+      if (imageToSave && createdProduct.id) {
+        saveImageToStorage(createdProduct.id, imageToSave)
+        // Füge das Bild auch zum returnde Produkt hinzu
+        createdProduct.imageBase64 = imageToSave
+      }
 
       // Aktualisiere Liste mit neuem Produkt vom Backend
       const updatedProducts = [createdProduct, ...props.products]
@@ -440,12 +577,147 @@ const addProduct = async () => {
   }
 }
 
+// Kamera-Funktionen
+const openCameraModal = () => {
+  showCameraModal.value = true
+  capturedImage.value = ''
+  // Disable body scroll wenn Modal offen ist
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+  nextTick(() => {
+    startCamera()
+  })
+}
+
+const closeCameraModal = () => {
+  stopCamera()
+  showCameraModal.value = false
+  capturedImage.value = ''
+  // Enable body scroll wenn Modal geschlossen ist
+  document.body.style.overflow = 'auto'
+  document.documentElement.style.overflow = 'auto'
+}
+
+// Inline Kamera-Funktionen (in der Image-Section)
+const openCameraInline = () => {
+  showCameraView.value = true
+  capturedImage.value = ''
+  nextTick(() => {
+    startCamera()
+  })
+}
+
+const closeCameraView = () => {
+  stopCamera()
+  showCameraView.value = false
+  capturedImage.value = ''
+}
+
+const confirmPhotoFromInline = () => {
+  newProduct.value.imageBase64 = capturedImage.value
+  closeCameraView()
+}
+
+const startCamera = async () => {
+  try {
+    stream.value = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+      audio: false
+    })
+
+    if (videoElement.value) {
+      videoElement.value.srcObject = stream.value
+    }
+  } catch (error) {
+    console.error('Fehler beim Zugriff auf die Kamera:', error)
+    alert('Kamerafreigabe wurde abgelehnt oder Kamera nicht verfügbar')
+  }
+}
+
+const stopCamera = () => {
+  if (stream.value) {
+    stream.value.getTracks().forEach(track => track.stop())
+    stream.value = null
+  }
+}
+
+const capturePhoto = () => {
+  if (videoElement.value) {
+    const canvas = document.createElement('canvas')
+    canvas.width = videoElement.value.videoWidth
+    canvas.height = videoElement.value.videoHeight
+
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.drawImage(videoElement.value, 0, 0)
+      capturedImage.value = canvas.toDataURL('image/jpeg', 0.9)
+    }
+  }
+}
+
+const retryPhoto = () => {
+  capturedImage.value = ''
+}
+
+const confirmPhoto = () => {
+  newProduct.value.imageBase64 = capturedImage.value
+  closeCameraModal()
+}
+
+// LocalStorage-Funktionen für Bild-Speicherung
+const saveImageToStorage = (productId: number | undefined, imageBase64: string) => {
+  if (productId && imageBase64) {
+    const imageStorage = JSON.parse(localStorage.getItem('productImages') || '{}')
+    imageStorage[productId] = imageBase64
+    localStorage.setItem('productImages', JSON.stringify(imageStorage))
+  }
+}
+
+const getImageFromStorage = (productId: number | undefined): string | undefined => {
+  if (!productId) return undefined
+  const imageStorage = JSON.parse(localStorage.getItem('productImages') || '{}')
+  return imageStorage[productId]
+}
+
+const deleteImageFromStorage = (productId: number | undefined) => {
+  if (productId) {
+    const imageStorage = JSON.parse(localStorage.getItem('productImages') || '{}')
+    delete imageStorage[productId]
+    localStorage.setItem('productImages', JSON.stringify(imageStorage))
+  }
+}
+
+// Datei-Upload-Funktionen
+const openFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      newProduct.value.imageBase64 = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const removeImage = () => {
+  newProduct.value.imageBase64 = ''
+}
+
 const deleteProduct = async (id: number) => {
   try {
     // Wenn das Produkt eine ID vom Backend hat, lösche es dort
     if (id) {
       await deleteProductFromBackend(id)
     }
+
+    // Lösche auch das Bild aus localStorage
+    deleteImageFromStorage(id)
 
     // Entferne aus Liste
     const updatedProducts = props.products.filter(p => p.id !== id)
@@ -719,10 +991,9 @@ const rescueProduct = async (id: number) => {
     #06D6A0 100%
   );
   padding: 1.5px;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   animation: rotateBorder 5s linear infinite;
 }
@@ -936,19 +1207,20 @@ const rescueProduct = async (id: number) => {
 /* Product Cards */
 .product-card {
   aspect-ratio: 1 / 1;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
   position: relative;
   overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .product-card::before {
@@ -959,7 +1231,7 @@ const rescueProduct = async (id: number) => {
   right: 0;
   height: 1.5px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  border-radius: 20px 20px 0 0;
+  border-radius: 24px 24px 0 0;
 }
 
 .product-card::after {
@@ -971,25 +1243,91 @@ const rescueProduct = async (id: number) => {
   bottom: 0;
   background: radial-gradient(ellipse at top right, rgba(255, 255, 255, 0.08), transparent);
   pointer-events: none;
-  border-radius: 20px;
+  border-radius: 24px;
 }
 
 .product-card:hover {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2),
-              inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-6px);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.25),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .card-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  gap: 0.8rem;
   position: relative;
   z-index: 1;
+  width: 100%;
+  padding: 1.2rem 0.8rem 1.2rem 0.8rem;
+  padding-bottom: 56px;
 }
+
+/* Consume Button - Bottom Full Width */
+.consume-btn {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 0 0 24px 24px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 11;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.consume-btn:hover {
+  height: 50px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.1);
+}
+
+.consume-btn:active {
+  height: 40px;
+  filter: brightness(0.95);
+}
+
+.consume-btn.expired-consume {
+  opacity: 0.8;
+}
+
+.consume-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 44px;
+  border-radius: 0 0 24px 24px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border: none;
+  cursor: default;
+}
+
 
 
 /* Toolbar Actions */
@@ -1058,44 +1396,37 @@ const rescueProduct = async (id: number) => {
 }
 
 .product-name {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 700;
-  margin-bottom: 0.3rem;
-}
-
-.category-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin: 0.4rem 0;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3);
-}
-
-.product-item:hover .category-dot {
-  width: 14px;
-  height: 14px;
-  box-shadow: 0 0 12px currentColor, inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  max-width: 100%;
+  word-wrap: break-word;
+  text-align: center;
 }
 
 .product-expiry {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .days-left {
-  font-size: 0.7rem;
-  color: rgba(255, 200, 100, 0.85);
+  font-size: 0.72rem;
+  color: rgba(255, 200, 100, 0.95);
   font-weight: 800;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
-  margin-top: 0.3rem;
-  padding: 0.3rem 0.6rem;
-  background: rgba(255, 200, 100, 0.1);
-  border-radius: 6px;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 200, 100, 0.15);
+  border: 1px solid rgba(255, 200, 100, 0.3);
+  border-radius: 8px;
   animation: pulse-warning 2s ease-in-out infinite;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 @keyframes pulse-warning {
@@ -1107,97 +1438,29 @@ const rescueProduct = async (id: number) => {
   }
 }
 
-/* Rescue Button */
-.rescue-btn-wrapper {
-  position: absolute;
-  bottom: 0.8rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
-}
-
-.rescue-btn {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, rgba(100, 200, 150, 0.3), rgba(100, 200, 150, 0.15));
-  border: 1.5px solid rgba(100, 200, 150, 0.5);
-  border-radius: 50%;
-  font-size: 1.4rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(100, 200, 150, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.rescue-btn:hover {
-  background: linear-gradient(135deg, rgba(100, 200, 150, 0.5), rgba(100, 200, 150, 0.3));
-  border-color: rgba(100, 200, 150, 0.7);
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(100, 200, 150, 0.35);
-}
-
-.rescue-btn:active {
-  transform: scale(0.95);
-}
-
-/* Rescued Badge */
-.rescued-badge {
-  position: absolute;
-  bottom: 0.8rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
-  padding: 0.5rem 0.8rem;
-  background: linear-gradient(135deg, rgba(100, 200, 150, 0.4), rgba(100, 200, 150, 0.2));
-  border: 1.5px solid rgba(100, 200, 150, 0.6);
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: rgba(100, 200, 150, 0.95);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(100, 200, 150, 0.2);
-  animation: badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes badge-pop {
-  0% {
-    transform: translateX(-50%) scale(0);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(-50%) scale(1);
-    opacity: 1;
-  }
-}
-
 /* Delete Button */
 .delete-btn {
   position: absolute;
   top: 0.8rem;
-  right: 0.8rem;
-  width: 28px;
-  height: 28px;
-  background: rgba(255, 100, 100, 0.1);
-  border: 1px solid rgba(255, 100, 100, 0.3);
+  left: 0.8rem;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 100, 100, 0.15);
+  border: 1.5px solid rgba(255, 100, 100, 0.4);
   border-radius: 50%;
-  color: rgba(255, 150, 150, 0.7);
-  font-size: 1.4rem;
+  color: rgba(255, 150, 150, 0.85);
+  font-size: 1.6rem;
   font-weight: 300;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  z-index: 10;
-  line-height: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(255, 100, 100, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 12;
 }
 
 .delete-btn:hover {
@@ -1205,6 +1468,7 @@ const rescueProduct = async (id: number) => {
   border-color: rgba(255, 100, 100, 0.5);
   color: rgba(255, 100, 100, 0.95);
   box-shadow: 0 0 15px rgba(255, 100, 100, 0.2);
+  transform: scale(1.1);
 }
 
 /* Products Sections */
@@ -1277,40 +1541,68 @@ const rescueProduct = async (id: number) => {
 /* Modal */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
+  overflow: auto;
+  animation: fadeIn 0.3s ease;
+  padding: 2rem;
+  pointer-events: auto;
 }
 
 .modal-content {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 30px;
+  background: rgba(10, 10, 20, 0.08);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 32px;
   padding: 3.5rem;
   width: 90%;
   max-width: 480px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08),
-              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  max-height: 90vh;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15),
+              inset 0 1px 2px rgba(255, 255, 255, 0.25);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
 
 .modal-content.modal-with-calendar {
-  max-width: 1000px;
-  display: flex;
-  gap: 3rem;
+  max-width: 85vw;
+  width: 85vw;
+  display: grid;
+  grid-template-columns: 400px 1fr 450px;
+  gap: 2.5rem;
   padding: 2.5rem;
+  max-height: 85vh;
+  background: rgba(10, 10, 20, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15),
+              inset 0 1px 2px rgba(255, 255, 255, 0.25);
 }
 
 /* Calendar Section */
@@ -1453,6 +1745,24 @@ const rescueProduct = async (id: number) => {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+}
+
+.modal-form-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-form-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-form-section::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.modal-form-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .selected-date-display {
@@ -1771,5 +2081,527 @@ const rescueProduct = async (id: number) => {
   }
 }
 
-</style>}
+/* ========== IMAGE & CAMERA STYLES ========== */
 
+/* Product Card mit Bild-Hintergrund */
+.product-card {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.product-card.product-item {
+  background-color: #ff6b6b;
+}
+
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+  border-radius: 20px;
+  z-index: 1;
+}
+
+.image-overlay.expired-overlay {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+}
+
+.product-card.product-item > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Image Upload Section im Modal */
+.image-upload-section {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.camera-btn,
+.file-btn {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.camera-btn:hover,
+.file-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.camera-btn {
+  background: rgba(100, 200, 255, 0.1);
+  border-color: rgba(100, 200, 255, 0.3);
+  color: rgba(100, 200, 255, 0.9);
+}
+
+.camera-btn:hover {
+  background: rgba(100, 200, 255, 0.2);
+  border-color: rgba(100, 200, 255, 0.5);
+  color: #64c8ff;
+}
+
+.file-btn {
+  background: rgba(157, 78, 221, 0.1);
+  border-color: rgba(157, 78, 221, 0.3);
+  color: rgba(157, 78, 221, 0.9);
+}
+
+.file-btn:hover {
+  background: rgba(157, 78, 221, 0.2);
+  border-color: rgba(157, 78, 221, 0.5);
+  color: #9d4edd;
+}
+
+/* Image Preview */
+.image-preview {
+  position: relative;
+  margin-top: 1rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 50, 80, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.remove-image-btn:hover {
+  background: rgba(255, 30, 60, 1);
+  transform: scale(1.1);
+}
+
+/* Camera Modal */
+.camera-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1999;
+}
+
+.camera-modal-content {
+  background: rgba(0, 0, 0, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 0;
+  width: 90%;
+  max-width: 500px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.camera-header {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.camera-header h3 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.close-camera-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-camera-btn:hover {
+  color: #ffffff;
+}
+
+.camera-body {
+  min-height: 400px;
+  background: #000000;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-video,
+.captured-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.camera-actions {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.capture-btn,
+.retry-btn,
+.confirm-btn {
+  padding: 0.9rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+}
+
+.capture-btn {
+  background: rgba(100, 200, 255, 0.2);
+  color: #64c8ff;
+  border: 1.5px solid rgba(100, 200, 255, 0.4);
+  flex: 1;
+}
+
+.capture-btn:hover {
+  background: rgba(100, 200, 255, 0.3);
+  border-color: rgba(100, 200, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(100, 200, 255, 0.2);
+}
+
+.retry-btn {
+  background: rgba(255, 150, 50, 0.2);
+  color: #ff9632;
+  border: 1.5px solid rgba(255, 150, 50, 0.4);
+  flex: 1;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 150, 50, 0.3);
+  border-color: rgba(255, 150, 50, 0.6);
+  transform: translateY(-2px);
+}
+
+.confirm-btn {
+  background: rgba(100, 255, 150, 0.2);
+  color: #64ff96;
+  border: 1.5px solid rgba(100, 255, 150, 0.4);
+  flex: 1;
+}
+
+.confirm-btn:hover {
+  background: rgba(100, 255, 150, 0.3);
+  border-color: rgba(100, 255, 150, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(100, 255, 150, 0.2);
+}
+
+.captured-actions {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* ========== MODAL IMAGE SECTION ========== */
+
+.modal-image-section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.image-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.image-preview-container h3 {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.image-upload-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.image-upload-buttons .camera-btn,
+.image-upload-buttons .file-btn {
+  width: 100%;
+  padding: 0.9rem 1rem;
+}
+
+.image-preview-large {
+  flex: 1;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.image-preview-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image-btn-large {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 50, 80, 0.95);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.remove-image-btn-large:hover {
+  background: rgba(255, 30, 60, 1);
+  transform: scale(1.05);
+}
+
+.image-preview-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border-radius: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  padding: 2rem;
+  text-align: center;
+  min-height: 300px;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  opacity: 0.7;
+}
+
+.image-preview-empty p {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ========== MODAL ANIMATIONS ========== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ========== INLINE CAMERA VIEW ========== */
+
+.camera-view-inline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  height: 100%;
+  min-height: 350px;
+}
+
+.camera-video-inline,
+.captured-image-inline {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.camera-controls-inline {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  justify-content: center;
+}
+
+.capture-btn-inline,
+.retry-btn-inline,
+.confirm-btn-inline {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.capture-btn-inline {
+  background: rgba(100, 200, 255, 0.2);
+  color: #64c8ff;
+  border: 1px solid rgba(100, 200, 255, 0.4);
+}
+
+.capture-btn-inline:hover {
+  background: rgba(100, 200, 255, 0.3);
+  border-color: rgba(100, 200, 255, 0.6);
+}
+
+.retry-btn-inline {
+  background: rgba(255, 150, 50, 0.2);
+  color: #ff9632;
+  border: 1px solid rgba(255, 150, 50, 0.4);
+}
+
+.retry-btn-inline:hover {
+  background: rgba(255, 150, 50, 0.3);
+  border-color: rgba(255, 150, 50, 0.6);
+}
+
+.confirm-btn-inline {
+  background: rgba(100, 255, 150, 0.2);
+  color: #64ff96;
+  border: 1px solid rgba(100, 255, 150, 0.4);
+}
+
+.confirm-btn-inline:hover {
+  background: rgba(100, 255, 150, 0.3);
+  border-color: rgba(100, 255, 150, 0.6);
+}
+
+.captured-actions-inline {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.close-camera-btn-inline {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.close-camera-btn-inline:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+</style>
