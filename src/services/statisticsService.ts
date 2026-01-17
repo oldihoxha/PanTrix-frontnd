@@ -60,16 +60,20 @@ class StatisticsService {
     }
 
     try {
-      const response = await this.apiClient.get<StatisticsResponse>('/api/statistics')
+      const response = await this.apiClient.get<StatisticsResponse>('/api/statistics', {
+        validateStatus: (status) => status < 500 // Akzeptiere alle Status < 500 (inkl. 404)
+      })
+
+      // Wenn 404, return null (Endpoint existiert nicht)
+      if (response.status === 404) {
+        return null
+      }
+
       this.statsCache = response.data.data
       this.lastUpdateTime = now
       return this.statsCache
     } catch (error: any) {
-      // Statistiken sind optional - 404 ist OK
-      if (error?.response?.status === 404) {
-        return null // Endpoint existiert nicht
-      }
-      // Für andere Fehler: still schweigen (keine console.error)
+      // Für echte Fehler: null zurückgeben
       return null
     }
   }
@@ -80,12 +84,20 @@ class StatisticsService {
    */
   async recalculateStatistics(): Promise<Statistics | null> {
     try {
-      const response = await this.apiClient.post<StatisticsResponse>('/api/statistics/recalculate', {})
+      const response = await this.apiClient.post<StatisticsResponse>('/api/statistics/recalculate', {}, {
+        validateStatus: (status) => status < 500 // Akzeptiere alle Status < 500 (inkl. 404)
+      })
+
+      // Wenn 404, return null (Endpoint existiert nicht)
+      if (response.status === 404) {
+        return null
+      }
+
       this.statsCache = response.data.data
       this.lastUpdateTime = Date.now()
       return this.statsCache
     } catch (error: any) {
-      // Statistiken sind optional - Fehler ignorieren
+      // Für echte Fehler: null zurückgeben
       return null
     }
   }

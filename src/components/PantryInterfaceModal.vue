@@ -65,7 +65,7 @@
       <!-- Products Grid Container -->
       <div class="products-grid">
         <!-- Empty State -->
-        <div v-if="filteredProducts.length === 0" class="empty-state">
+        <div v-if="filteredProducts.length === 0 || (activeProducts.length === 0 && expiredProducts.length === 0)" class="empty-state">
           <h3>Noch keine Produkte hinzugefügt</h3>
           <p>Nutze die <strong>Hinzufügen</strong> Taste in der Toolbar um Produkte zu hinzufügen.</p>
         </div>
@@ -142,180 +142,184 @@
     </div>
 
     <!-- Add Product Modal -->
-    <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddProductModal">
-      <div class="modal-content modal-with-calendar">
-        <!-- Calendar Section (Left) -->
-        <div class="modal-calendar-section">
-          <div class="calendar-wrapper">
-            <div class="calendar-header">
-              <button @click="previousMonth" class="calendar-nav">‹</button>
-              <h3>{{ monthYearDisplay }}</h3>
-              <button @click="nextMonth" class="calendar-nav">›</button>
-            </div>
-            <div class="calendar-grid">
-              <div class="calendar-weekdays">
-                <div v-for="day in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']" :key="day" class="weekday">
-                  {{ day }}
+    <Transition name="modal-fade">
+      <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddProductModal">
+        <div class="modal-content modal-with-calendar">
+          <!-- Calendar Section (Left) -->
+          <div class="modal-calendar-section">
+            <div class="calendar-wrapper">
+              <div class="calendar-header">
+                <button @click="previousMonth" class="calendar-nav">‹</button>
+                <h3>{{ monthYearDisplay }}</h3>
+                <button @click="nextMonth" class="calendar-nav">›</button>
+              </div>
+              <div class="calendar-grid">
+                <div class="calendar-weekdays">
+                  <div v-for="day in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']" :key="day" class="weekday">
+                    {{ day }}
+                  </div>
                 </div>
-              </div>
-              <div class="calendar-dates">
-                <button
-                  v-for="date in calendarDates"
-                  :key="date.dateString"
-                  :class="['calendar-date', {
-                    'other-month': !date.currentMonth,
-                    'selected': newProduct.expiryDate === date.dateString,
-                    'today': date.isToday
-                  }]"
-                  @click="selectDate(date.dateString!)"
-                >
-                  {{ date.day }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Form Section (Right) -->
-        <div class="modal-form-section">
-          <div class="modal-header">
-            <h2>Neues Produkt hinzufügen</h2>
-            <button class="close-btn" @click="closeAddProductModal">✕</button>
-          </div>
-          <form @submit.prevent="addProduct" class="product-form">
-            <div class="form-group">
-              <label>Produktname *</label>
-              <input v-model="newProduct.name" type="text" required placeholder="z.B. Tomaten" />
-            </div>
-            <div class="form-group">
-              <label>Kategorie *</label>
-              <div class="category-selector">
-                <button
-                  v-for="cat in categories.filter(c => c !== 'Alle')"
-                  :key="cat"
-                  type="button"
-                  :class="['category-select-btn', { selected: newProduct.category === cat }]"
-                  :style="{ '--dot-color': getCategoryColor(cat) }"
-                  @click="newProduct.category = cat"
-                >
-                  <span class="select-dot" :style="{ backgroundColor: getCategoryColor(cat) }"></span>
-                  {{ cat }}
-                </button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Ablaufdatum *</label>
-              <div class="selected-date-display">
-                {{ newProduct.expiryDate ? formatDate(newProduct.expiryDate) : 'Nicht gewählt' }}
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Menge</label>
-              <input v-model="newProduct.quantity" type="number" min="1" placeholder="1" />
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn-cancel" @click="closeAddProductModal">Abbrechen</button>
-              <button type="submit" class="btn-submit">Hinzufügen</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Image Preview Section (Right) -->
-        <div class="modal-image-section">
-          <div class="image-preview-container">
-            <h3>Produktbild</h3>
-            <div class="image-upload-buttons">
-              <button type="button" class="camera-btn" @click="openCameraInline" title="Foto mit Kamera machen">
-                📷 Foto machen
-              </button>
-              <button type="button" class="file-btn" @click="openFileInput" title="Bild aus Dateien wählen">
-                🖼️ Datei wählen
-              </button>
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                style="display: none"
-                @change="handleFileSelect"
-              />
-            </div>
-            <!-- Camera View Inline -->
-            <div v-if="showCameraView" class="camera-view-inline">
-              <video
-                v-if="!capturedImage"
-                ref="videoElement"
-                class="camera-video-inline"
-                autoplay
-                playsinline
-              ></video>
-              <img v-else :src="capturedImage" alt="Aufgenommenes Foto" class="captured-image-inline" />
-              <div class="camera-controls-inline">
-                <button v-if="!capturedImage" type="button" class="capture-btn-inline" @click="capturePhoto">
-                  📸 Foto
-                </button>
-                <div v-else class="captured-actions-inline">
-                  <button type="button" class="retry-btn-inline" @click="retryPhoto">
-                    🔄 Erneut
-                  </button>
-                  <button type="button" class="confirm-btn-inline" @click="confirmPhotoFromInline">
-                    ✓ OK
+                <div class="calendar-dates">
+                  <button
+                    v-for="date in calendarDates"
+                    :key="date.dateString"
+                    :class="['calendar-date', {
+                      'other-month': !date.currentMonth,
+                      'selected': newProduct.expiryDate === date.dateString,
+                      'today': date.isToday
+                    }]"
+                    @click="selectDate(date.dateString!)"
+                  >
+                    {{ date.day }}
                   </button>
                 </div>
               </div>
-              <button type="button" class="close-camera-btn-inline" @click="closeCameraView">
-                ✕
-              </button>
             </div>
-            <!-- Normal Preview -->
-            <template v-else>
-              <div v-if="newProduct.imageBase64" class="image-preview-large">
-                <img :src="newProduct.imageBase64" alt="Produktbild" />
-                <button type="button" class="remove-image-btn-large" @click="removeImage" title="Bild entfernen">
-                  🗑️ Löschen
+          </div>
+
+          <!-- Form Section (Middle) -->
+          <div class="modal-form-section">
+            <div class="modal-header">
+              <h2>Neues Produkt hinzufügen</h2>
+              <button class="close-btn" @click="closeAddProductModal">✕</button>
+            </div>
+            <form @submit.prevent="addProduct" class="product-form">
+              <div class="form-group">
+                <label>Produktname *</label>
+                <input v-model="newProduct.name" type="text" required placeholder="z.B. Tomaten" />
+              </div>
+              <div class="form-group">
+                <label>Kategorie *</label>
+                <div class="category-selector">
+                  <button
+                    v-for="cat in categories.filter(c => c !== 'Alle')"
+                    :key="cat"
+                    type="button"
+                    :class="['category-select-btn', { selected: newProduct.category === cat }]"
+                    :style="{ '--dot-color': getCategoryColor(cat) }"
+                    @click="newProduct.category = cat"
+                  >
+                    <span class="select-dot" :style="{ backgroundColor: getCategoryColor(cat) }"></span>
+                    {{ cat }}
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Ablaufdatum *</label>
+                <div class="selected-date-display">
+                  {{ newProduct.expiryDate ? formatDate(newProduct.expiryDate) : 'Nicht gewählt' }}
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Menge</label>
+                <input v-model="newProduct.quantity" type="number" min="1" placeholder="1" />
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" @click="closeAddProductModal">Abbrechen</button>
+                <button type="submit" class="btn-submit">Hinzufügen</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Image Preview Section (Right) -->
+          <div class="modal-image-section">
+            <div class="image-preview-container">
+              <h3>Produktbild</h3>
+              <div class="image-upload-buttons">
+                <button type="button" class="camera-btn" @click="openCameraInline" title="Foto mit Kamera machen">
+                  📷 Foto machen
+                </button>
+                <button type="button" class="file-btn" @click="openFileInput" title="Bild aus Dateien wählen">
+                  🖼️ Datei wählen
+                </button>
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleFileSelect"
+                />
+              </div>
+              <!-- Camera View Inline -->
+              <div v-if="showCameraView" class="camera-view-inline">
+                <video
+                  v-if="!capturedImage"
+                  ref="videoElement"
+                  class="camera-video-inline"
+                  autoplay
+                  playsinline
+                ></video>
+                <img v-else :src="capturedImage" alt="Aufgenommenes Foto" class="captured-image-inline" />
+                <div class="camera-controls-inline">
+                  <button v-if="!capturedImage" type="button" class="capture-btn-inline" @click="capturePhoto">
+                    📸 Foto
+                  </button>
+                  <div v-else class="captured-actions-inline">
+                    <button type="button" class="retry-btn-inline" @click="retryPhoto">
+                      🔄 Erneut
+                    </button>
+                    <button type="button" class="confirm-btn-inline" @click="confirmPhotoFromInline">
+                      ✓ OK
+                    </button>
+                  </div>
+                </div>
+                <button type="button" class="close-camera-btn-inline" @click="closeCameraView">
+                  ✕
                 </button>
               </div>
-              <div v-else class="image-preview-empty">
-                <div class="empty-icon">📷</div>
-                <p>Klicken Sie auf "Foto machen" oder "Datei wählen" um ein Bild hinzuzufügen</p>
-              </div>
-            </template>
+              <!-- Normal Preview -->
+              <template v-else>
+                <div v-if="newProduct.imageBase64" class="image-preview-large">
+                  <img :src="newProduct.imageBase64" alt="Produktbild" />
+                  <button type="button" class="remove-image-btn-large" @click="removeImage" title="Bild entfernen">
+                    🗑️ Löschen
+                  </button>
+                </div>
+                <div v-else class="image-preview-empty">
+                  <div class="empty-icon">📷</div>
+                  <p>Klicken Sie auf "Foto machen" oder "Datei wählen" um ein Bild hinzuzufügen</p>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Camera Modal -->
-    <div v-if="showCameraModal" class="camera-modal-overlay" @click.self="closeCameraModal">
-      <div class="camera-modal-content">
-        <div class="camera-header">
-          <h3>Produktfoto machen</h3>
-          <button class="close-camera-btn" @click="closeCameraModal">✕</button>
-        </div>
-        <div class="camera-body">
-          <video
-            v-if="!capturedImage"
-            ref="videoElement"
-            class="camera-video"
-            autoplay
-            playsinline
-          ></video>
-          <img v-else :src="capturedImage" alt="Aufgenommenes Foto" class="captured-image" />
-        </div>
-        <div class="camera-actions">
-          <button v-if="!capturedImage" type="button" class="capture-btn" @click="capturePhoto">
-            📸 Foto machen
-          </button>
-          <div v-else class="captured-actions">
-            <button type="button" class="retry-btn" @click="retryPhoto">
-              🔄 Wiederholen
+    <Transition name="modal-fade">
+      <div v-if="showCameraModal" class="camera-modal-overlay" @click.self="closeCameraModal">
+        <div class="camera-modal-content">
+          <div class="camera-header">
+            <h3>Produktfoto machen</h3>
+            <button class="close-camera-btn" @click="closeCameraModal">✕</button>
+          </div>
+          <div class="camera-body">
+            <video
+              v-if="!capturedImage"
+              ref="videoElement"
+              class="camera-video"
+              autoplay
+              playsinline
+            ></video>
+            <img v-else :src="capturedImage" alt="Aufgenommenes Foto" class="captured-image" />
+          </div>
+          <div class="camera-actions">
+            <button v-if="!capturedImage" type="button" class="capture-btn" @click="capturePhoto">
+              📸 Foto machen
             </button>
-            <button type="button" class="confirm-btn" @click="confirmPhoto">
-              ✓ Bestätigen
-            </button>
+            <div v-else class="captured-actions">
+              <button type="button" class="retry-btn" @click="retryPhoto">
+                🔄 Wiederholen
+              </button>
+              <button type="button" class="confirm-btn" @click="confirmPhoto">
+                ✓ Bestätigen
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -523,6 +527,14 @@ const openAddProductModal = () => {
   // Disable body scroll wenn Modal offen ist
   document.body.style.overflow = 'hidden'
   document.documentElement.style.overflow = 'hidden'
+
+  // Verschiebe das Modal zu document.body
+  nextTick(() => {
+    const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement
+    if (modalOverlay && modalOverlay.parentElement !== document.body) {
+      document.body.appendChild(modalOverlay)
+    }
+  })
 }
 
 const closeAddProductModal = () => {
@@ -790,8 +802,9 @@ const rescueProduct = async (id: number) => {
 .pantry-interface-modal {
   width: 100%;
   padding: 0;
-  position: relative;
+  position: static;
   z-index: 20;
+  contain: none;
 }
 
 /* Main Container - Cooles Design mit Toolbar und Produkten */
@@ -991,10 +1004,6 @@ const rescueProduct = async (id: number) => {
     #06D6A0 100%
   );
   padding: 1.5px;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
   animation: rotateBorder 5s linear infinite;
 }
 
@@ -1169,6 +1178,7 @@ const rescueProduct = async (id: number) => {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 1.8rem;
+  min-height: 500px;
 }
 
 /* Empty State */
@@ -1181,6 +1191,7 @@ const rescueProduct = async (id: number) => {
   padding: 4rem 2rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
+  min-height: 100%;
 }
 
 .empty-state h3 {
@@ -1540,37 +1551,45 @@ const rescueProduct = async (id: number) => {
 
 /* Modal */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  overflow: auto;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   animation: fadeIn 0.3s ease;
-  padding: 2rem;
-  pointer-events: auto;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
 }
 
 .modal-content {
-  background: rgba(10, 10, 20, 0.08);
+  background: rgba(10, 10, 20, 0.15);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   border-radius: 32px;
   padding: 3.5rem;
   width: 90%;
   max-width: 480px;
-  max-height: 90vh;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15),
+  max-height: 85vh;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3),
               inset 0 1px 2px rgba(255, 255, 255, 0.25);
-  position: relative;
+  position: relative !important;
   overflow-y: auto;
   overflow-x: hidden;
   animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100000 !important;
+  flex-shrink: 0;
+  margin: 0 auto !important;
 }
 
 .modal-content::-webkit-scrollbar {
@@ -1592,26 +1611,32 @@ const rescueProduct = async (id: number) => {
 }
 
 .modal-content.modal-with-calendar {
-  max-width: 85vw;
-  width: 85vw;
+  max-width: min(95vw, 1400px);
+  width: 95vw;
   display: grid;
-  grid-template-columns: 400px 1fr 450px;
-  gap: 2.5rem;
-  padding: 2.5rem;
+  grid-template-columns: 350px 1fr 320px;
+  gap: 1.5rem;
+  padding: 1.5rem;
   max-height: 85vh;
-  background: rgba(10, 10, 20, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15),
+  background: rgba(10, 10, 20, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3),
               inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  z-index: 100000 !important;
+  position: relative !important;
+  transform: none !important;
+  margin: 0 auto !important;
+  border-radius: 32px;
+  overflow: auto;
 }
 
 /* Calendar Section */
 .modal-calendar-section {
-  flex: 0 0 350px;
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  min-height: 600px;
+  min-height: auto;
 }
 
 .calendar-wrapper {
@@ -1620,7 +1645,7 @@ const rescueProduct = async (id: number) => {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  padding: 2rem;
+  padding: 1rem;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -1631,13 +1656,13 @@ const rescueProduct = async (id: number) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .calendar-header h3 {
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 700;
   margin: 0;
@@ -1668,44 +1693,44 @@ const rescueProduct = async (id: number) => {
 .calendar-grid {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
 }
 
 .weekday {
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.6);
-  padding: 0.5rem;
+  padding: 0.3rem;
 }
 
 .calendar-dates {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.8rem;
+  gap: 0.7rem;
 }
 
 .calendar-date {
   aspect-ratio: 1 / 1;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 10px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  min-height: 45px;
+  min-height: 35px;
 }
 
 .calendar-date:hover {
@@ -2081,6 +2106,141 @@ const rescueProduct = async (id: number) => {
   }
 }
 
+/* ========== MODAL RESPONSIVE STYLES ========== */
+
+@media (max-width: 1400px) {
+  .modal-content.modal-with-calendar {
+    max-width: 95vw;
+    width: 95vw;
+    grid-template-columns: 330px 1fr 300px;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .modal-content.modal-with-calendar {
+    max-width: 95vw;
+    width: 95vw;
+    grid-template-columns: 310px 1fr 280px;
+    gap: 1.2rem;
+    padding: 1.2rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .modal-content.modal-with-calendar {
+    max-width: 100vw;
+    width: 100vw;
+    grid-template-columns: 1fr;
+    max-height: 95vh;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .modal-calendar-section {
+    min-height: 500px;
+    flex: 1;
+  }
+
+  .modal-form-section {
+    flex: 1;
+    min-height: 400px;
+  }
+
+  .modal-image-section {
+    flex: 1;
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-content {
+    max-height: 95vh;
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  .modal-content.modal-with-calendar {
+    max-width: 100vw;
+    width: 100vw;
+    padding: 1.5rem;
+    border-radius: 16px;
+    gap: 1rem;
+  }
+
+  .modal-calendar-section {
+    min-height: 400px;
+  }
+
+  .calendar-wrapper {
+    width: 100%;
+  }
+
+  .modal-form-section form {
+    gap: 0.8rem;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+  }
+
+  .image-upload-buttons {
+    flex-direction: column;
+  }
+
+  .camera-btn,
+  .file-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    border-radius: 16px;
+    max-height: 98vh;
+  }
+
+  .modal-content.modal-with-calendar {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    gap: 0.8rem;
+  }
+
+  .form-group label {
+    font-size: 0.75rem;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .form-actions {
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    padding: 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
 /* ========== IMAGE & CAMERA STYLES ========== */
 
 /* Product Card mit Bild-Hintergrund */
@@ -2387,11 +2547,11 @@ const rescueProduct = async (id: number) => {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.2rem;
 }
 
 .image-preview-container h3 {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 800;
   margin: 0;
@@ -2402,13 +2562,15 @@ const rescueProduct = async (id: number) => {
 .image-upload-buttons {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.9rem;
 }
 
 .image-upload-buttons .camera-btn,
 .image-upload-buttons .file-btn {
   width: 100%;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .image-preview-large {
@@ -2604,4 +2766,33 @@ const rescueProduct = async (id: number) => {
   transform: scale(1.1);
 }
 
+/* ========== TRANSITION ANIMATIONS ========== */
+
+/* Modal Fade Transition */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .modal-content,
+.modal-fade-leave-active .modal-content {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-fade-enter-from .modal-content,
+.modal-fade-leave-to .modal-content {
+  opacity: 0;
+  transform: scale(0.95) translateY(-20px);
+}
+
 </style>
+
+
+
+
+
