@@ -817,6 +817,7 @@ const rescueProduct = async (id: number) => {
   border: 1.5px solid rgba(255, 255, 255, 0.15);
   border-radius: 30px;
   padding: 3rem;
+  min-height: 800px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25),
               inset 0 1px 1px rgba(255, 255, 255, 0.15);
   position: relative;
