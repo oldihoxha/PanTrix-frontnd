@@ -209,43 +209,35 @@
                 <div class="pie-chart-container">
                 <div class="pie-chart-wrapper">
                   <svg class="pie-chart" viewBox="0 0 100 100">
-                    <!-- Verfügbar Segment -->
+                    <!-- Verfügbar Segment (Grün) -->
                     <circle
                       v-if="availableProducts > 0"
                       class="pie-segment available"
                       cx="50"
                       cy="50"
                       r="40"
-                      :style="{
-                        '--available-dash': totalProducts > 0 ? `${(availableProducts / totalProducts) * 251.2}` : '0'
-                      }"
-                      :stroke-dasharray="`0 251.2`"
+                      :stroke-dasharray="`${(availableProducts / totalProducts) * 251.2} 251.2`"
+                      stroke-dashoffset="0"
                     />
-                    <!-- Bald ablaufend Segment -->
+                    <!-- Bald ablaufend Segment (Gelb) -->
                     <circle
                       v-if="soonExpiringProducts > 0"
                       class="pie-segment soon-expiring"
                       cx="50"
                       cy="50"
                       r="40"
-                      :style="{
-                        '--soon-expiring-dash': totalProducts > 0 ? `${(soonExpiringProducts / totalProducts) * 251.2}` : '0',
-                        '--soon-expiring-offset': availableProducts > 0 ? `-${(availableProducts / totalProducts) * 251.2}` : '0'
-                      }"
-                      :stroke-dasharray="`0 251.2`"
+                      :stroke-dasharray="`${(soonExpiringProducts / totalProducts) * 251.2} 251.2`"
+                      :stroke-dashoffset="`-${(availableProducts / totalProducts) * 251.2}`"
                     />
-                    <!-- Abgelaufen Segment -->
+                    <!-- Abgelaufen Segment (Rot) -->
                     <circle
                       v-if="expiredProducts > 0"
                       class="pie-segment expired"
                       cx="50"
                       cy="50"
                       r="40"
-                      :style="{
-                        '--expired-dash': totalProducts > 0 ? `${(expiredProducts / totalProducts) * 251.2}` : '0',
-                        '--expired-offset': totalProducts > 0 ? `-${((availableProducts + soonExpiringProducts) / totalProducts) * 251.2}` : '0'
-                      }"
-                      :stroke-dasharray="`0 251.2`"
+                      :stroke-dasharray="`${(expiredProducts / totalProducts) * 251.2} 251.2`"
+                      :stroke-dashoffset="`-${((availableProducts + soonExpiringProducts) / totalProducts) * 251.2}`"
                     />
                     <!-- Transparent circle when no products -->
                     <circle
@@ -314,7 +306,7 @@
             </button>
 
             <!-- Dropdown Content -->
-            <div v-show="isAlertsDropdownOpen" class="alerts-dropdown-content">
+            <div v-show="isAlertsDropdownOpen" class="alerts-dropdown-content" :class="{ 'open-upward': alertsDropdownOpenUpward }">
               <div v-if="alerts.length === 0" class="no-alerts-dropdown">
                 <span class="no-alerts-icon">✅</span>
                 <p>Keine Meldungen - alles im grünen Bereich!</p>
@@ -386,12 +378,18 @@
         </div>
       </section>
 
+      <!-- Spacer Section - erstellt Platz wenn Dropdown offen ist -->
+      <section v-if="isAlertsDropdownOpen" class="alerts-spacer-section">
+        <!-- Dieser Platz verhindert, dass der Footer überlappt wird -->
+      </section>
+
       <!-- Other Actions -->
 
       <!-- Footer Button Bar -->
       <footer class="footer-bar">
         <div class="footer-bar-content">
           <button class="footer-btn copyright">&copy; 2025 PanTrix. Alle Rechte vorbehalten.</button>
+          <p class="footer-credits">Entwickelt & Programmiert von Oldi Hoxha & Nikolaos Pazartziklis</p>
         </div>
       </footer>
     </div>
@@ -461,7 +459,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import PantryInterfaceModal from './PantryInterfaceModal.vue'
 import { useProducts } from '../composables/useProducts'
@@ -533,15 +531,15 @@ const getActiveProductsCount = (): number => {
  * Zählt ALLE Produkte (egal welcher Status)
  */
 /**
- * Zählt nur AKTIVE Produkte (nicht abgelaufen, nicht "saved")
+ * Zählt nur AKTIVE Produkte (nicht "saved")
+ * Inkludiert: verfügbar, bald ablaufend UND abgelaufen
  */
 const getTotalProductsCount = (): number => {
-  const today = new Date()
   return products.value.filter(p => {
-    // Nur Produkte die noch nicht abgelaufen sind UND nicht "saved" sind
+    // Nur Produkte die NICHT "saved" sind
     if (p.status === 'saved') return false
-    const expiryDate = parseExpiryDate(p.expiryDate)
-    return expiryDate >= today
+    // Alle anderen Produkte zählen (fresh, expiring_soon, abgelaufen, etc.)
+    return true
   }).length
 }
 
@@ -802,6 +800,14 @@ const alerts = ref<Alert[]>([])
 
 // State für Dropdown-Widget
 const isAlertsDropdownOpen = ref(false)
+const alertsDropdownOpenUpward = ref(false)
+
+// Funktion zum Überprüfen, ob Dropdown nach oben öffnen soll
+// DEAKTIVIERT - Dropdown öffnet immer nach unten
+const checkAlertDropdownPosition = () => {
+  // Immer nach unten öffnen
+  alertsDropdownOpenUpward.value = false
+}
 
 const userName = computed(() => {
   // Safeguard: props.currentUser könnte leer sein
@@ -1084,8 +1090,10 @@ const generateAlertsFromProducts = () => {
   // Generiere Meldungen für ablaufende und abgelaufene Produkte
   const alertableProducts = sortedProducts.filter(p => {
     const daysUntil = getDaysUntilExpiry(p.expiryDate)
+    // Nur Produkte der Vorratskammer (nicht "saved" oder andere Status)
     // Zeige: abgelaufene Produkte (daysUntil < 0) oder ablaufend innerhalb von 7 Tagen
-    return daysUntil < 0 || (daysUntil >= 0 && daysUntil <= 7)
+    const isRelevantProduct = p.status !== 'saved' && p.status !== 'expired'
+    return isRelevantProduct && (daysUntil < 0 || (daysUntil >= 0 && daysUntil <= 7))
   })
 
   // Erstelle für jedes Produkt eine einzelne Meldung
@@ -1146,8 +1154,17 @@ watch(products, () => {
   animateCounter(getSavedProductsCount(), displayCount2, 800)
   animateCounter(getExpiringProductsCount(), displayCount3, 800)
   animateCounter(getTotalProductsCount(), displayCount4, 800)
+
+  // ...existing code...
   generateAlertsFromProducts() // ← Generiere Alerts basierend auf aktuellen Produkten
 }, { deep: true })
+
+// Watcher für Alerts Dropdown Position
+watch(isAlertsDropdownOpen, (isOpen) => {
+  if (isOpen) {
+    checkAlertDropdownPosition()
+  }
+})
 
 onMounted(async () => {
   // Lade Produkte vom Backend
@@ -1764,25 +1781,25 @@ const createGradientEffects = () => {
   /* Base Widget Style */
 
   .stat-widget {
-    background: transparent;
-    backdrop-filter: blur(50px);
-    -webkit-backdrop-filter: blur(50px);
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.005);
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(100px);
+    border: 1.5px solid rgba(255, 255, 255, 0.06);
     border-radius: 20px;
     padding: 1.2rem;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.06);
   }
 
   .stat-widget:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
   }
 
   .stat-widget h3 {
@@ -1822,13 +1839,13 @@ const createGradientEffects = () => {
   .widget-categories {
     grid-column: 1;
     grid-row: 1;
-    background: transparent;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.005);
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
   .widget-categories:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .categories-list {
@@ -1842,9 +1859,10 @@ const createGradientEffects = () => {
     justify-content: space-between;
     align-items: center;
     padding: 0.6rem 0.8rem;
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.003);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1.5px solid rgba(255, 255, 255, 0.04);
     border-radius: 12px;
     font-size: 0.75rem;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1852,8 +1870,8 @@ const createGradientEffects = () => {
   }
 
   .category-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.1);
     transform: translateX(2px);
   }
 
@@ -1902,13 +1920,13 @@ const createGradientEffects = () => {
   }
 
   .widget-total {
-    background: transparent;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.005);
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
   .widget-total:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .widget-main-content {
@@ -2001,13 +2019,13 @@ const createGradientEffects = () => {
   .widget-saved {
     grid-column: 3;
     grid-row: 1;
-    background: transparent;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.005);
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
   .widget-saved:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   /* Expiring Widget - Small */
@@ -2015,13 +2033,13 @@ const createGradientEffects = () => {
   .widget-small {
     grid-column: 4;
     grid-row: 1;
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.015);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   .widget-small:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   /* Expiring Dual Display */
@@ -2055,8 +2073,8 @@ const createGradientEffects = () => {
   .widget-storage {
     grid-column: 1 / 3;
     grid-row: 2;
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.005);
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
 
@@ -2264,15 +2282,15 @@ const createGradientEffects = () => {
   .widget-product-status {
     grid-column: 3 / 5;
     grid-row: 2;
-    background: transparent;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.005);
+    border-color: rgba(255, 255, 255, 0.06);
     display: flex;
     flex-direction: column;
   }
 
   .widget-product-status:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .widget-product-status h3 {
@@ -2306,59 +2324,21 @@ const createGradientEffects = () => {
     stroke-width: 20;
     stroke-linecap: round;
     transition: stroke-dasharray 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-    stroke-dasharray: 0, 251.2;
-    stroke-dashoffset: 0;
   }
 
   .pie-segment.available {
     stroke: #00D966;
     filter: drop-shadow(0 0 8px rgba(0, 217, 102, 0.4));
-    animation: fillAvailable 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   .pie-segment.soon-expiring {
     stroke: #FFD93D;
     filter: drop-shadow(0 0 8px rgba(255, 217, 61, 0.4));
-    animation: fillSoonExpiring 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   .pie-segment.expired {
     stroke: #FF2E4B;
     filter: drop-shadow(0 0 8px rgba(255, 46, 75, 0.4));
-    animation: fillExpired 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  @keyframes fillAvailable {
-    from {
-      stroke-dasharray: 0, 251.2;
-      stroke-dashoffset: 0;
-    }
-    to {
-      stroke-dasharray: var(--available-dash, 0), 251.2;
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes fillSoonExpiring {
-    from {
-      stroke-dasharray: 0, 251.2;
-      stroke-dashoffset: 0;
-    }
-    to {
-      stroke-dasharray: var(--soon-expiring-dash, 0), 251.2;
-      stroke-dashoffset: var(--soon-expiring-offset, 0);
-    }
-  }
-
-  @keyframes fillExpired {
-    from {
-      stroke-dasharray: 0, 251.2;
-      stroke-dashoffset: 0;
-    }
-    to {
-      stroke-dasharray: var(--expired-dash, 0), 251.2;
-      stroke-dashoffset: var(--expired-offset, 0);
-    }
   }
 
   .pie-center {
@@ -2531,115 +2511,20 @@ const createGradientEffects = () => {
     justify-content: center;
   }
 
-  .alerts-container {
-    margin-top: 2rem;
-  }
-
-  .no-alerts {
-    background: rgba(144, 238, 144, 0.05);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(144, 238, 144, 0.3);
-    border-radius: 20px;
-    padding: 3rem 2rem;
-    text-align: center;
-  }
-
-  .no-alerts-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 1rem;
-  }
-
-  .no-alerts p {
-    color: rgba(144, 238, 144, 0.8);
-    font-size: 1.1rem;
-  }
-
-  .alert-card {
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    gap: 1.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  }
-
-  .alert-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    border-radius: 20px 20px 0 0;
-  }
-
-  .alert-card:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateX(8px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-  }
-
-
-  .alert-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-  }
-
-  .alert-content {
-    text-align: left;
-    flex: 1;
-  }
-
-  .alert-title {
-    color: #ffffff;
-    font-weight: 700;
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
-  }
-
-  .alert-message {
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0 0 0.8rem 0;
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-
-  .alert-date {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.8rem;
-    margin: 0;
-  }
-
-  /* Alerts Dropdown Widget */
   .alerts-dropdown-widget {
     position: relative;
     width: 100%;
-    max-width: 600px;
+    max-width: 1400px;
   }
 
   .alerts-dropdown-toggle {
     width: 100%;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    padding: 1.2rem 1.5rem;
+    background: rgba(255, 255, 255, 0.005);
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(100px);
+    border: 1.5px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2652,15 +2537,15 @@ const createGradientEffects = () => {
   }
 
   .alerts-dropdown-toggle:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   }
 
   .alerts-dropdown-toggle.is-open {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   }
 
   .dropdown-icon {
@@ -2677,7 +2562,7 @@ const createGradientEffects = () => {
   }
 
   .alert-count {
-    background: rgba(255, 96, 60, 0.3);
+    background: rgba(255, 96, 60, 0.2);
     color: #FF603C;
     padding: 0.3rem 0.6rem;
     border-radius: 12px;
@@ -2702,18 +2587,25 @@ const createGradientEffects = () => {
     top: calc(100% + 0.8rem);
     left: 0;
     right: 0;
-    background: rgba(20, 20, 30, 0.95);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    padding: 0;
-    max-height: 600px;
+    background: rgba(255, 255, 255, 0.005);
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(100px);
+    border: 1.5px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 1.5rem;
+    max-height: 70vh;
     overflow-y: auto;
     z-index: 1000;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3),
-                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1),
+                inset 0 1px 1px rgba(255, 255, 255, 0.06);
     animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Wenn Dropdown nach oben öffnet */
+  .alerts-dropdown-content.open-upward {
+    top: auto;
+    bottom: calc(100% + 0.8rem);
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   @keyframes slideDown {
@@ -2727,13 +2619,26 @@ const createGradientEffects = () => {
     }
   }
 
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .no-alerts-dropdown {
-    background: rgba(144, 238, 144, 0.05);
-    border: 1px solid rgba(144, 238, 144, 0.2);
-    border-radius: 12px;
+    background: rgba(144, 238, 144, 0.02);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    border: 1px solid rgba(144, 238, 144, 0.15);
+    border-radius: 16px;
     padding: 2rem 1.5rem;
     text-align: center;
-    margin: 1rem;
+    margin: 0;
   }
 
   .alerts-groups {
@@ -2742,8 +2647,8 @@ const createGradientEffects = () => {
   }
 
   .alerts-group {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   }
 
   .alerts-group:last-child {
@@ -2762,8 +2667,10 @@ const createGradientEffects = () => {
   }
 
   .alert-item {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.003);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 1rem;
     margin-bottom: 0.8rem;
@@ -2772,8 +2679,8 @@ const createGradientEffects = () => {
   }
 
   .alert-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.01);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .alert-item:last-child {
@@ -2830,41 +2737,91 @@ const createGradientEffects = () => {
   /* Alert Item Type Styles */
   .expired-item {
     border-left: 3px solid #FF2E4B;
-    background: rgba(255, 46, 75, 0.05);
+    background: rgba(255, 46, 75, 0.02);
+    animation: pulseExpiredBorder 2s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(255, 46, 75, 0.3);
   }
 
   .expired-item:hover {
-    background: rgba(255, 46, 75, 0.08);
+    background: rgba(255, 46, 75, 0.04);
+    border-color: rgba(255, 46, 75, 0.5);
+    animation: none;
+    box-shadow: 0 0 12px rgba(255, 46, 75, 0.4);
+  }
+
+  @keyframes pulseExpiredBorder {
+    0% {
+      border-left-color: #FF2E4B;
+      border-color: #FF2E4B;
+      box-shadow: 0 0 0 0 rgba(255, 46, 75, 0.4);
+    }
+    50% {
+      border-left-color: #FF6677;
+      border-color: #FF6677;
+      box-shadow: 0 0 8px 2px rgba(255, 46, 75, 0.2);
+    }
+    100% {
+      border-left-color: #FF2E4B;
+      border-color: #FF2E4B;
+      box-shadow: 0 0 0 0 rgba(255, 46, 75, 0.4);
+    }
   }
 
   .expiring-item {
     border-left: 3px solid #FF9800;
-    background: rgba(255, 152, 0, 0.05);
+    background: rgba(255, 152, 0, 0.02);
   }
 
   .expiring-item:hover {
-    background: rgba(255, 152, 0, 0.08);
+    background: rgba(255, 152, 0, 0.04);
+    border-color: rgba(255, 152, 0, 0.3);
   }
 
   .info-item {
     border-left: 3px solid #2196F3;
-    background: rgba(33, 150, 243, 0.05);
+    background: rgba(33, 150, 243, 0.02);
   }
 
   .info-item:hover {
-    background: rgba(33, 150, 243, 0.08);
+    background: rgba(33, 150, 243, 0.04);
+    border-color: rgba(33, 150, 243, 0.3);
   }
 
   .success-item {
     border-left: 3px solid #4CAF50;
-    background: rgba(76, 175, 80, 0.05);
+    background: rgba(76, 175, 80, 0.02);
     display: flex;
     gap: 0.8rem;
     align-items: center;
   }
 
   .success-item:hover {
-    background: rgba(76, 175, 80, 0.08);
+    background: rgba(76, 175, 80, 0.04);
+    border-color: rgba(76, 175, 80, 0.3);
+  }
+
+  /* Spacer Section für Alerts Dropdown */
+  .alerts-spacer-section {
+    background: transparent;
+    padding: 2rem 2rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    min-height: 800px;
+    animation: spacerIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: min-height;
+    transition: min-height 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  @keyframes spacerIn {
+    from {
+      opacity: 0;
+      min-height: 0;
+    }
+    to {
+      opacity: 1;
+      min-height: 800px;
+    }
   }
 
   /* Scrollbar styling for dropdown */
@@ -2873,18 +2830,18 @@ const createGradientEffects = () => {
   }
 
   .alerts-dropdown-content::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.02);
     border-radius: 10px;
   }
 
   .alerts-dropdown-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     transition: all 0.3s ease;
   }
 
   .alerts-dropdown-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.2);
   }
 
   /* Footer Button Bar */
@@ -2903,10 +2860,10 @@ const createGradientEffects = () => {
     max-width: 1400px;
     width: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .footer-btn {
@@ -2948,6 +2905,22 @@ const createGradientEffects = () => {
     transform: none;
     box-shadow: none;
   }
+
+  /* Footer Credits */
+  .footer-credits {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0.6rem 0 0 0;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    line-height: 1.4;
+    transition: color 0.3s ease;
+  }
+
+  .footer-credits:hover {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
   @media (max-width: 768px) {
     .hero-section h1 {
       font-size: 2rem;
@@ -3023,22 +2996,25 @@ const createGradientEffects = () => {
 
   /* Scrollbar styling for sidebar */
   .right-sidebar::-webkit-scrollbar {
-    width: 6px;
+    width: 0;
+    display: none;
   }
 
   .right-sidebar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    background: transparent;
   }
 
   .right-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    transition: all 0.3s ease;
+    background: transparent;
   }
 
   .right-sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0);
+    background: transparent;
+  }
+
+  /* Firefox scrollbar styling */
+  .right-sidebar {
+    scrollbar-width: none;
   }
 
   /* Sidebar Cards Base Style */
@@ -3466,7 +3442,7 @@ const createGradientEffects = () => {
     justify-content: space-around;
     gap: 1.2rem;
     width: 100%;
-    height: 175px;
+    height: 208.5px;
     padding: 0;
   }
 

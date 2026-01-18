@@ -150,8 +150,8 @@
                 :style="{
                   backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
                   backgroundColor: product.imageBase64 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                  borderColor: 'rgba(255, 100, 100, 0.6)',
-                  boxShadow: `0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 0 16px rgba(255, 100, 100, 0.25)`
+                  borderColor: '#FF4444',
+                  boxShadow: `0 0 20px rgba(255, 68, 68, 0.5), 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.15)`
                 }"
               >
                 <!-- Image Overlay -->
@@ -2137,15 +2137,42 @@ const rescueProduct = async (id: number) => {
 
 /* Expired Product Styling */
 .expired-product {
-  background: linear-gradient(135deg, rgba(255, 100, 100, 0.12), rgba(255, 150, 100, 0.08));
-  border-color: rgba(255, 100, 100, 0.35);
-  animation: gentle-float 3s ease-in-out infinite;
+  background: linear-gradient(135deg, rgba(255, 100, 100, 0.15), rgba(255, 150, 100, 0.1));
+  border: 2.5px solid #FF4444;
+  animation: pulseExpiredProductBorder 1.5s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4),
+              0 8px 32px rgba(0, 0, 0, 0.12),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .expired-product:hover {
-  background: linear-gradient(135deg, rgba(255, 100, 100, 0.18), rgba(255, 150, 100, 0.12));
-  border-color: rgba(255, 100, 100, 0.5);
+  background: linear-gradient(135deg, rgba(255, 100, 100, 0.2), rgba(255, 150, 100, 0.15));
+  border-color: #FF2E2E;
   animation: none;
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.6),
+              0 8px 32px rgba(0, 0, 0, 0.2),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes pulseExpiredProductBorder {
+  0% {
+    border-color: #FF4444;
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.6),
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    border-color: #FF6666;
+    box-shadow: 0 0 0 8px rgba(255, 68, 68, 0),
+                0 8px 32px rgba(0, 0, 0, 0.15),
+                inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  }
+  100% {
+    border-color: #FF4444;
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.6),
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  }
 }
 
 .expired-date {
