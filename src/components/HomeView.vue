@@ -224,10 +224,10 @@
             <!-- Product Status Widget (Large Right) -->
             <div class="stat-widget widget-large widget-product-status">
               <h3>Produktzustand</h3>
-              <div class="pie-chart-container">
+                <div class="pie-chart-container">
                 <div class="pie-chart-wrapper">
                   <svg class="pie-chart" viewBox="0 0 100 100">
-                    <!-- Show segment only if products exist in that category -->
+                    <!-- Verfügbar Segment -->
                     <circle
                       v-if="availableProducts > 0"
                       class="pie-segment available"
@@ -239,6 +239,20 @@
                       }"
                       :stroke-dasharray="`0 251.2`"
                     />
+                    <!-- Bald ablaufend Segment -->
+                    <circle
+                      v-if="soonExpiringProducts > 0"
+                      class="pie-segment soon-expiring"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      :style="{
+                        '--soon-expiring-dash': totalProducts > 0 ? `${(soonExpiringProducts / totalProducts) * 251.2}` : '0',
+                        '--soon-expiring-offset': availableProducts > 0 ? `-${(availableProducts / totalProducts) * 251.2}` : '0'
+                      }"
+                      :stroke-dasharray="`0 251.2`"
+                    />
+                    <!-- Abgelaufen Segment -->
                     <circle
                       v-if="expiredProducts > 0"
                       class="pie-segment expired"
@@ -247,7 +261,7 @@
                       r="40"
                       :style="{
                         '--expired-dash': totalProducts > 0 ? `${(expiredProducts / totalProducts) * 251.2}` : '0',
-                        '--expired-offset': availableProducts > 0 ? `-${(availableProducts / totalProducts) * 251.2}` : '0'
+                        '--expired-offset': totalProducts > 0 ? `-${((availableProducts + soonExpiringProducts) / totalProducts) * 251.2}` : '0'
                       }"
                       :stroke-dasharray="`0 251.2`"
                     />
@@ -271,6 +285,13 @@
                     <div class="legend-info">
                       <div class="legend-name">Verfügbar</div>
                       <div class="legend-count">{{ availableProducts }}</div>
+                    </div>
+                  </div>
+                  <div v-if="soonExpiringProducts > 0" class="legend-item soon-expiring">
+                    <span class="legend-dot"></span>
+                    <div class="legend-info">
+                      <div class="legend-name">Bald ablaufend</div>
+                      <div class="legend-count">{{ soonExpiringProducts }}</div>
                     </div>
                   </div>
                   <div v-if="expiredProducts > 0" class="legend-item expired">
@@ -476,7 +497,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
 import PantryInterfaceModal from './PantryInterfaceModal.vue'
 import { useProducts } from '../composables/useProducts'
@@ -519,17 +540,6 @@ const getDayOfWeek = (date: Date): number => {
   let day = date.getDay() - 1
   if (day === -1) day = 6
   return day
-}
-
-/**
- * Konvertiert heutiges Datum zu YYYY-MM-DD String (lokale Zeit, nicht UTC)
- */
-const getTodayStringHelper = (): string => {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 /**
@@ -663,16 +673,31 @@ const getExpiredProductsCount = (): number => {
 }
 
 /**
- * Zählt verfügbare (aktive, noch nicht abgelaufene) Produkte
- * Ausschluss: "saved" Produkte und abgelaufene
+ * Zählt bald ablaufende Produkte (ablaufen innerhalb von 1-7 Tagen, aber nicht heute)
+ */
+const getSoonExpiringProductsCount = (): number => {
+  const today = new Date()
+  const tomorrowStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 0, 0, 0)
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+  return products.value.filter(p => {
+    if (p.status === 'saved' || p.status === 'expired') return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= tomorrowStart && expiryDate <= nextWeek
+  }).length
+}
+
+/**
+ * Zählt verfügbare (aktive, noch nicht bald ablaufende) Produkte
+ * Ausschluss: "saved" Produkte, abgelaufene und bald ablaufende
  */
 const getAvailableProductsCount = (): number => {
   const today = new Date()
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
   return products.value.filter(p => {
-    // Ausschluss: "saved" Produkte
-    if (p.status === 'saved') return false
+    if (p.status === 'saved' || p.status === 'expired') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
-    return expiryDate >= today
+    // Verfügbar = mehr als 7 Tage bis zum Ablauf
+    return expiryDate > nextWeek
   }).length
 }
 
@@ -763,6 +788,11 @@ const totalProducts = computed(() => getTotalProductsCount())
 const availableProducts = computed(() => getAvailableProductsCount())
 
 /**
+ * Anzahl bald ablaufender Produkte (1-7 Tage)
+ */
+const soonExpiringProducts = computed(() => getSoonExpiringProductsCount())
+
+/**
  * Anzahl abgelaufener Produkte
  */
 const expiredProducts = computed(() => getExpiredProductsCount())
@@ -817,17 +847,6 @@ const getGreeting = () => {
 }
 
 const currentGreeting = computed(() => getGreeting())
-const userStreak = ref(12) // Beispiel: 12 Tage Streak
-const expiringProductsCount = computed(() => {
-  const today = new Date()
-  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-  return products.value.filter(p => {
-    if (p.status === 'saved' || p.status === 'expired') return false
-    const expiryDate = new Date(p.expiryDate)
-    return expiryDate >= today && expiryDate <= nextWeek
-  }).length
-})
-
 // Category Colors
 const categoryColors: Record<string, string> = {
   'Gemüse': '#06D6A0',      // Grün
@@ -2266,6 +2285,12 @@ const createGradientEffects = () => {
     animation: fillAvailable 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
+  .pie-segment.soon-expiring {
+    stroke: #FFD93D;
+    filter: drop-shadow(0 0 8px rgba(255, 217, 61, 0.4));
+    animation: fillSoonExpiring 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
   .pie-segment.expired {
     stroke: #FF2E4B;
     filter: drop-shadow(0 0 8px rgba(255, 46, 75, 0.4));
@@ -2280,6 +2305,17 @@ const createGradientEffects = () => {
     to {
       stroke-dasharray: var(--available-dash, 0), 251.2;
       stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes fillSoonExpiring {
+    from {
+      stroke-dasharray: 0, 251.2;
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dasharray: var(--soon-expiring-dash, 0), 251.2;
+      stroke-dashoffset: var(--soon-expiring-offset, 0);
     }
   }
 
@@ -2345,6 +2381,10 @@ const createGradientEffects = () => {
     border-color: rgba(0, 217, 102, 0.3);
   }
 
+  .legend-item.soon-expiring {
+    border-color: rgba(255, 217, 61, 0.3);
+  }
+
   .legend-item.expired {
     border-color: rgba(255, 46, 75, 0.3);
   }
@@ -2359,6 +2399,11 @@ const createGradientEffects = () => {
   .legend-item.available .legend-dot {
     background: #00D966;
     box-shadow: 0 0 8px rgba(0, 217, 102, 0.5);
+  }
+
+  .legend-item.soon-expiring .legend-dot {
+    background: #FFD93D;
+    box-shadow: 0 0 8px rgba(255, 217, 61, 0.5);
   }
 
   .legend-item.expired .legend-dot {
