@@ -33,6 +33,58 @@ const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
 
+// About Us Slider State
+const currentAboutUsIndex = ref(0)
+const aboutUsItems = ref([
+  {
+    number: '01',
+    title: 'Unsere Mission',
+    highlights: [
+      'Bekämpfung von Lebensmittelverschwendung',
+      'Innovative Technologielösungen'
+    ],
+    text: 'Wir nutzen modernste Technologie, um Lebensmittelverschwendung zu bekämpfen. PanTrix hilft Haushalten und Unternehmen weltweit, ihre Lebensmittel intelligent zu verwalten, Ressourcen optimal zu nutzen und gleichzeitig einen positiven Beitrag zur Umwelt zu leisten. Unsere Vision ist eine Welt ohne unnötige Lebensmittelverschwendung.'
+  },
+  {
+    number: '02',
+    title: 'Unser Ziel',
+    highlights: [
+      'Nachhaltige Zukunft schaffen',
+      'Kosten für Verbraucher senken'
+    ],
+    text: 'Wir streben eine nachhaltige Zukunft ohne Lebensmittelverschwendung an. Durch intelligente Verwaltung, personalisierte Rezepte und automatische Produkterkennung ermöglichen wir es jedem Haushalt, Kosten zu sparen und gleichzeitig den Planeten zu schützen. Gemeinsam können wir Millionen Tonnen Lebensmittel retten.'
+  },
+  {
+    number: '03',
+    title: 'Wie wir arbeiten',
+    highlights: [
+      'Intelligente Benachrichtigungen',
+      'Personalisierte Rezept-Vorschläge'
+    ],
+    text: 'Unser System arbeitet mit intelligenten Benachrichtigungen, personalisierten Rezept-Vorschlägen und automatischer Produkterkennung. Mit nur wenigen Klicks behalten Sie den perfekten Überblick über Ihre Lebensmittel. Die Kombination aus künstlicher Intelligenz und benutzerfreundlichem Design macht PanTrix zur idealen Lösung für einen nachhaltigen Lebensstil.'
+  }
+])
+
+const nextAboutUs = () => {
+  currentAboutUsIndex.value = (currentAboutUsIndex.value + 1) % aboutUsItems.value.length
+}
+
+const prevAboutUs = () => {
+  currentAboutUsIndex.value = (currentAboutUsIndex.value - 1 + aboutUsItems.value.length) % aboutUsItems.value.length
+}
+
+const goToAboutUs = (index: number) => {
+  currentAboutUsIndex.value = index
+}
+
+// Scroll to section function
+const scrollToSection = (sectionId: string) => {
+  const element = document.getElementById(sectionId)
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
 // 3D Scene Setup
 let scene: THREE.Scene
 let camera: THREE.OrthographicCamera
@@ -52,11 +104,12 @@ const isFading = ref(false)
 
 // Slogans für die Typing-Animation
 const slogans = [
-  'Dein intelligenter Lebensmittel-Tracker',
+  'Free your fridge: Enter the PanTrix',
   'Spare Geld, schütze die Umwelt, verschwende nichts mehr',
   'Rette Lebensmittel',
   'Schone die Umwelt',
-  'Sei nachhaltig'
+  'Sei nachhaltig' ,
+  'Dein intelligenter Lebensmittel-Tracker'
 ]
 
 
@@ -181,7 +234,7 @@ const init3DScene = () => {
       if (!startTime) startTime = currentTime
 
       const elapsedTime = (currentTime - startTime)
-      const progress = Math.min(elapsedTime / 3000, 1) // 3 Sekunden Animation
+      const progress = Math.min(elapsedTime / 5000, 1) // 5 Sekunden Animation (vorher 3)
 
       streak.style.transform = `scaleX(${progress})`
 
@@ -227,7 +280,7 @@ const init3DScene = () => {
       if (!startTimeVertical) startTimeVertical = currentTime
 
       const elapsedTime = (currentTime - startTimeVertical)
-      const progress = Math.min(elapsedTime / 3000, 1) // 3 Sekunden Animation
+      const progress = Math.min(elapsedTime / 5000, 1) // 5 Sekunden Animation
 
       verticalStreak.style.transform = `scaleY(${progress})`
 
@@ -390,11 +443,11 @@ const init3DScene = () => {
   const coloringInterval = setInterval(() => {
     if (coloringIndex < emojis.length) {
       const emoji = emojis[coloringIndex]!
-      // Animiere die Einfärbung über 2 Sekunden (langsamer)
+      // Animiere die Einfärbung über 3.5 Sekunden (langsamer)
       const startTime = performance.now()
       const animateColoring = (currentTime: number) => {
         const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / 2000, 1) // 2 Sekunden Animation (vorher 1)
+        const progress = Math.min(elapsed / 3500, 1) // 3.5 Sekunden Animation (vorher 2)
 
         // Interpoliere von grayscale zu farbig
         const saturation = progress * 100
@@ -415,7 +468,7 @@ const init3DScene = () => {
     } else {
       clearInterval(coloringInterval)
     }
-  }, 600) // Alle 600ms das nächste Emoji einfärben (vorher 300ms)
+  }, 800) // Alle 800ms das nächste Emoji einfärben (vorher 600ms)
 
   // Anime Emojis
   const animateEmojis = () => {
@@ -754,8 +807,7 @@ onUnmounted(() => {
         </div>
       </div>
       <nav class="nav-links">
-        <button v-if="!isLoggedIn" class="nav-button">Über uns</button>
-        <button v-if="!isLoggedIn" class="nav-button">Features</button>
+        <button v-if="!isLoggedIn" class="nav-button" @click="scrollToSection('about-us-section')">Über uns</button>
 
         <button v-if="!isLoggedIn" class="nav-button" @click="openAuthModal" style="margin-left: auto;">Anmelden</button>
 
@@ -813,6 +865,43 @@ onUnmounted(() => {
         </div>
       </section>
 
+      <!-- About Us Section -->
+      <section class="about-us-section" id="about-us-section">
+        <div class="about-us-container">
+          <div class="about-us-header">
+            <h2>Über uns</h2>
+          </div>
+
+          <div class="about-us-slider">
+            <div class="about-us-slide" :class="{ active: currentAboutUsIndex === index }" v-for="(item, index) in aboutUsItems" :key="index">
+              <div class="slide-number">{{ item.number }}</div>
+              <h3>{{ item.title }}</h3>
+              <div class="slide-highlights">
+                <span v-for="(highlight, i) in item.highlights" :key="i" class="highlight">{{ highlight }}</span>
+              </div>
+              <p>{{ item.text }}</p>
+            </div>
+          </div>
+
+          <div class="about-us-controls">
+            <button class="slider-arrow slider-prev" @click="prevAboutUs">‹</button>
+
+            <div class="slider-dots">
+              <button
+                v-for="(item, index) in aboutUsItems"
+                :key="index"
+                class="dot"
+                :class="{ active: currentAboutUsIndex === index }"
+                @click="goToAboutUs(index)"
+                :aria-label="`Go to slide ${index + 1}`"
+              ></button>
+            </div>
+
+            <button class="slider-arrow slider-next" @click="nextAboutUs">›</button>
+          </div>
+        </div>
+      </section>
+
       <!-- How It Works Section -->
       <section class="section how-it-works-section">
         <div class="section-content">
@@ -836,8 +925,21 @@ onUnmounted(() => {
               <p>Behalte den Überblick über deine Lebensmittel</p>
             </div>
           </div>
-          <div class="upcoming-feature">
-            <p>🔜 <strong>Bald verfügbar:</strong> Intelligente Rezept-Vorschläge basierend auf deinen Lebensmitteln</p>
+        </div>
+      </section>
+
+      <!-- Upcoming Features Section -->
+      <section class="section upcoming-features-section">
+        <div class="section-content">
+          <div class="upcoming-features">
+            <div class="upcoming-feature">
+              <span class="coming-soon-badge">COMING SOON</span>
+              <p><span class="pulse-icon">🔜</span> <strong>Intelligente Produkterkennung</strong> mit automatischer Ablaufdatumerkennung via Kamera</p>
+            </div>
+            <div class="upcoming-feature">
+              <span class="coming-soon-badge">COMING SOON</span>
+              <p><span class="pulse-icon">🔜</span> <strong>Intelligente Rezept-Vorschläge</strong> basierend auf deinen Lebensmitteln</p>
+            </div>
           </div>
         </div>
       </section>
@@ -1211,7 +1313,313 @@ onUnmounted(() => {
   padding: 6rem 2rem;
 }
 
+/* About Us Section - Interactive Slider */
+.about-us-section {
+  background: transparent;
+  padding: 5rem 0;
+  margin: 4rem 0;
+  position: relative;
+  z-index: 50;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  border-top: none;
+  border-bottom: none;
+}
+
+.about-us-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 4rem;
+}
+
+.about-us-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.about-us-header h2 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.about-us-intro {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Slider Container */
+.about-us-slider {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  margin-bottom: 3rem;
+  background: linear-gradient(135deg, rgba(255, 96, 60, 0.08) 0%, rgba(220, 80, 143, 0.06) 100%);
+  border: 2px solid rgba(255, 96, 60, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(255, 96, 60, 0.2), 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  perspective: 1000px;
+}
+
+.about-us-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 4rem 5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  transform: rotateY(15deg) rotateX(5deg);
+  transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+.about-us-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 96, 60, 0.06) 0%, transparent 50%, rgba(220, 80, 143, 0.04) 100%);
+  pointer-events: none;
+}
+
+.about-us-slide.active {
+  opacity: 1;
+  transform: rotateY(0deg) rotateX(0deg);
+  filter: blur(0px);
+  pointer-events: auto;
+}
+
+.slide-number {
+  font-size: 5rem;
+  font-weight: 900;
+  color: rgba(255, 96, 60, 0.2);
+  letter-spacing: 3px;
+  margin-bottom: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.about-us-slide h3 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+  margin: 0 0 1.2rem 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  position: relative;
+  z-index: 1;
+}
+
+.slide-highlights {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.highlight {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 96, 60, 0.15);
+  border: 1px solid rgba(255, 96, 60, 0.3);
+  border-radius: 25px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+}
+
+.highlight:hover {
+  background: rgba(255, 96, 60, 0.25);
+  border-color: rgba(255, 96, 60, 0.5);
+  transform: translateY(-2px);
+}
+
+.about-us-slide p {
+  font-size: 1.2rem;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  max-width: 900px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Controls */
+.about-us-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.slider-arrow {
+  background: rgba(255, 96, 60, 0.15);
+  border: 1.5px solid rgba(255, 96, 60, 0.4);
+  color: rgba(255, 96, 60, 0.95);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.slider-arrow:hover {
+  background: rgba(255, 96, 60, 0.25);
+  border-color: rgba(255, 96, 60, 0.6);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.15);
+  box-shadow: 0 0 20px rgba(255, 96, 60, 0.3);
+}
+
+.slider-dots {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 96, 60, 0.2);
+  border: 1px solid rgba(255, 96, 60, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dot:hover {
+  background: rgba(255, 96, 60, 0.4);
+  border-color: rgba(255, 96, 60, 0.6);
+  transform: scale(1.2);
+}
+
+.dot.active {
+  background: linear-gradient(135deg, rgba(255, 96, 60, 0.9), rgba(220, 80, 143, 0.8));
+  border-color: rgba(255, 96, 60, 0.8);
+  width: 32px;
+  border-radius: 6px;
+  box-shadow: 0 0 15px rgba(255, 96, 60, 0.4);
+}
+
+@media (max-width: 1024px) {
+  .about-us-slider {
+    height: 450px;
+  }
+
+  .about-us-slide {
+    padding: 3rem 4rem;
+  }
+
+  .slide-number {
+    font-size: 4rem;
+  }
+
+  .about-us-slide h3 {
+    font-size: 2.2rem;
+  }
+
+  .about-us-slide p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-us-section {
+    padding: 3rem 0;
+    margin: 2rem 0;
+  }
+
+  .about-us-container {
+    padding: 0 2rem;
+  }
+
+  .about-us-slider {
+    height: 400px;
+  }
+
+  .about-us-slide {
+    padding: 2.5rem 2rem;
+  }
+
+  .slide-number {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .about-us-slide h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .slide-highlights {
+    margin-bottom: 1rem;
+  }
+
+  .highlight {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .about-us-slide p {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .about-us-controls {
+    gap: 1.5rem;
+  }
+
+  .slider-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .dot.active {
+    width: 28px;
+  }
+}
+
 .how-it-works-section {
+  background: transparent;
+  padding: 6rem 2rem;
+}
+
+/* Upcoming Features Section */
+.upcoming-features-section {
   background: transparent;
   padding: 6rem 2rem;
 }
@@ -1460,32 +1868,109 @@ onUnmounted(() => {
   }
 }
 
+/* Pulsing Animation for Icon */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Coming Soon Badge */
+.coming-soon-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, rgba(56, 189, 59, 0.85), rgba(34, 155, 74, 0.75));
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  border-radius: 20px;
+  margin-bottom: 0.8rem;
+  box-shadow: 0 0 12px rgba(56, 189, 59, 0.5),
+              0 0 20px rgba(34, 155, 74, 0.25);
+}
+
+/* Pulse Icon */
+.pulse-icon {
+  display: inline-block;
+  animation: pulse-glow 2s ease-in-out infinite;
+  margin-right: 0.3rem;
+}
+
+/* Upcoming Features Container */
+.upcoming-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 /* Upcoming Feature Box */
 .upcoming-feature {
-  margin-top: 3rem;
   padding: 1.5rem 2rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(56, 189, 59, 0.1), rgba(34, 155, 74, 0.07), rgba(52, 211, 153, 0.08));
+  border: 2px solid rgba(56, 189, 59, 0.35);
   border-radius: 15px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.95rem;
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(56, 189, 59, 0.2),
+              0 0 30px rgba(34, 155, 74, 0.12),
+              inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.upcoming-feature::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(56, 189, 59, 0.1) 0%, transparent 70%);
+  animation: float 8s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, -20px);
+  }
 }
 
 .upcoming-feature:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(56, 189, 59, 0.15), rgba(34, 155, 74, 0.1), rgba(52, 211, 153, 0.12));
+  border-color: rgba(56, 189, 59, 0.5);
+  color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-4px);
+  box-shadow: 0 0 28px rgba(56, 189, 59, 0.3),
+              0 0 40px rgba(34, 155, 74, 0.18),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .upcoming-feature p {
   margin: 0;
   font-weight: 500;
   letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
+}
+
+.upcoming-feature strong {
+  color: rgba(56, 189, 59, 0.9);
+  font-weight: 700;
 }
 
 /* Footer */
@@ -1582,7 +2067,7 @@ onUnmounted(() => {
   margin: 0 auto 1.5rem auto;
   padding: 0;
   text-shadow: none;
-  animation: slideInDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: slideInDown 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   line-height: 1.2;
   transition: all 0.3s ease;
 }
@@ -1892,14 +2377,17 @@ onUnmounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(220, 53, 69, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 96, 60, 0.5), rgba(255, 64, 64, 0.4), rgba(220, 80, 143, 0.5), transparent);
   transition: left 0.6s ease;
 }
 
 .btn-submit:hover {
-  background: rgba(220, 53, 69, 0.15);
-  border-color: rgba(220, 53, 69, 0.5);
-  box-shadow: 0 0 20px rgba(220, 53, 69, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 96, 60, 0.2), rgba(255, 64, 64, 0.15), rgba(220, 80, 143, 0.2));
+  border-color: rgba(255, 96, 60, 0.6);
+  box-shadow: 0 0 20px rgba(255, 96, 60, 0.4),
+              0 0 30px rgba(255, 64, 64, 0.3),
+              0 0 40px rgba(220, 80, 143, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-submit:hover::before {
@@ -1909,14 +2397,14 @@ onUnmounted(() => {
 .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.3);
+  background: rgba(255, 96, 60, 0.1);
+  border-color: rgba(255, 96, 60, 0.3);
 }
 
 .btn-submit:disabled:hover {
-  background: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.3);
-  box-shadow: 0 0 20px rgba(220, 53, 69, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: rgba(255, 96, 60, 0.1);
+  border-color: rgba(255, 96, 60, 0.3);
+  box-shadow: 0 0 20px rgba(255, 96, 60, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .btn-submit:disabled::before {

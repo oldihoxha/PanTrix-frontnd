@@ -42,6 +42,21 @@ export interface ProductResponse {
 }
 
 /**
+ * Alert/Meldung für Produkte in der Vorratskammer
+ */
+export interface Alert {
+  id: number
+  type: 'warning' | 'info' | 'success'
+  icon: string
+  title: string
+  message: string
+  date: string
+  expiryDate?: string
+  productName?: string
+  category?: string
+}
+
+/**
  * API Response für Statistiken
  */
 export interface StatisticsResponse {

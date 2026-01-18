@@ -20,15 +20,25 @@
     <!-- Main Content with Right Sidebar -->
     <div class="content-wrapper">
       <div class="scroll-container">
-      <!-- Hero Section -->
-      <section class="section hero-section">
-        <h1>Willkommen, {{ userName }}! </h1>
-        <p class="home-subtitle">Deine Lebensmittel verwalten</p>
-        <p class="home-tagline">{{ currentDate }}</p>
+      <!-- Hero Section - Personalized Welcome -->
+      <section class="section hero-section personalized-welcome">
+        <div class="welcome-header">
+          <div class="greeting-section">
+            <span class="greeting-emoji">{{ currentGreeting.emoji }}</span>
+            <div class="greeting-text">
+              <h1 class="greeting-main">{{ currentGreeting.text }}, {{ userName }}</h1>
+              <p class="greeting-sub">Deine Lebensmittel verwalten</p>
+              <p class="greeting-date">{{ currentDate }}</p>
+            </div>
+          </div>
+
+          <div class="info-badges">
+          </div>
+        </div>
       </section>
 
       <!-- MyPantry - Modern Pantry Interface -->
-      <section class="section my-pantry-section">
+      <section id="my-pantry-section" class="section my-pantry-section">
         <div class="section-content">
           <h2>Meine Vorratskammer</h2>
           <PantryInterfaceModal :products="products" @update:products="onProductsUpdate" />
@@ -36,7 +46,7 @@
       </section>
 
       <!-- Quick Stats with Progress Rings -->
-      <section class="section quick-stats-section">
+      <section id="quick-stats-section" class="section quick-stats-section">
         <div class="section-content">
           <h2>Statistiken</h2>
 
@@ -224,7 +234,10 @@
                       cx="50"
                       cy="50"
                       r="40"
-                      :style="{ strokeDasharray: totalProducts > 0 ? `${(availableProducts / totalProducts) * 251.2} 251.2` : '0 251.2' }"
+                      :style="{
+                        '--available-dash': totalProducts > 0 ? `${(availableProducts / totalProducts) * 251.2}` : '0'
+                      }"
+                      :stroke-dasharray="`0 251.2`"
                     />
                     <circle
                       v-if="expiredProducts > 0"
@@ -232,7 +245,11 @@
                       cx="50"
                       cy="50"
                       r="40"
-                      :style="{ strokeDasharray: totalProducts > 0 ? `${(expiredProducts / totalProducts) * 251.2} 251.2` : '0 251.2', strokeDashoffset: availableProducts > 0 ? `-${(availableProducts / totalProducts) * 251.2}` : '0' }"
+                      :style="{
+                        '--expired-dash': totalProducts > 0 ? `${(expiredProducts / totalProducts) * 251.2}` : '0',
+                        '--expired-offset': availableProducts > 0 ? `-${(availableProducts / totalProducts) * 251.2}` : '0'
+                      }"
+                      :stroke-dasharray="`0 251.2`"
                     />
                     <!-- Transparent circle when no products -->
                     <circle
@@ -274,20 +291,92 @@
       </section>
 
       <!-- Alerts & Messages -->
-      <section class="section alerts-section">
+      <section id="alerts-section" class="section alerts-section">
         <div class="section-content">
           <h2>Aktuelle Meldungen</h2>
-          <div class="alerts-container">
-            <div v-if="alerts.length === 0" class="no-alerts">
-              <span class="no-alerts-icon">✅</span>
-              <p>Keine Meldungen - alles im grünen Bereich!</p>
-            </div>
-            <div v-else v-for="alert in alerts" :key="alert.id" class="alert-card" :class="alert.type">
-              <span class="alert-icon">{{ alert.icon }}</span>
-              <div class="alert-content">
-                <p class="alert-title">{{ alert.title }}</p>
-                <p class="alert-message">{{ alert.message }}</p>
-                <p class="alert-date">{{ alert.date }}</p>
+
+          <!-- Alerts Dropdown Widget -->
+          <div class="alerts-dropdown-widget">
+            <button
+              class="alerts-dropdown-toggle"
+              @click="isAlertsDropdownOpen = !isAlertsDropdownOpen"
+              :class="{ 'is-open': isAlertsDropdownOpen }"
+            >
+              <span class="dropdown-icon">📋</span>
+              <span class="dropdown-title">
+                Meldungen für Produkte
+                <span class="alert-count">{{ alerts.length }}</span>
+              </span>
+              <span class="dropdown-arrow" :class="{ 'is-expanded': isAlertsDropdownOpen }">▼</span>
+            </button>
+
+            <!-- Dropdown Content -->
+            <div v-show="isAlertsDropdownOpen" class="alerts-dropdown-content">
+              <div v-if="alerts.length === 0" class="no-alerts-dropdown">
+                <span class="no-alerts-icon">✅</span>
+                <p>Keine Meldungen - alles im grünen Bereich!</p>
+              </div>
+
+              <!-- Group alerts by type -->
+              <div v-else class="alerts-groups">
+                <!-- Expired Products Group -->
+                <div v-if="alerts.some(a => a.type === 'warning' && a.title.includes('abgelaufen'))" class="alerts-group expired-group">
+                  <h4 class="group-title">⚠️ Abgelaufene Produkte</h4>
+                  <div v-for="alert in alerts.filter(a => a.type === 'warning' && a.title.includes('abgelaufen'))" :key="alert.id" class="alert-item expired-item">
+                    <div class="alert-item-header">
+                      <span class="alert-item-icon">{{ alert.icon }}</span>
+                      <div class="alert-item-info">
+                        <p class="alert-item-product-name">{{ alert.productName }}</p>
+                        <p class="alert-item-time">{{ alert.date }}</p>
+                      </div>
+                    </div>
+                    <p class="alert-item-message">{{ alert.message }}</p>
+                    <span v-if="alert.expiryDate" class="alert-item-date">Ablaufdatum: {{ alert.expiryDate }}</span>
+                  </div>
+                </div>
+
+                <!-- Expiring Soon Group -->
+                <div v-if="alerts.some(a => a.type === 'warning' && !a.title.includes('abgelaufen'))" class="alerts-group expiring-group">
+                  <h4 class="group-title">⏰ Läuft bald ab</h4>
+                  <div v-for="alert in alerts.filter(a => a.type === 'warning' && !a.title.includes('abgelaufen'))" :key="alert.id" class="alert-item expiring-item">
+                    <div class="alert-item-header">
+                      <span class="alert-item-icon">{{ alert.icon }}</span>
+                      <div class="alert-item-info">
+                        <p class="alert-item-product-name">{{ alert.productName }}</p>
+                        <p class="alert-item-time">{{ alert.date }}</p>
+                      </div>
+                    </div>
+                    <p class="alert-item-message">{{ alert.message }}</p>
+                    <span v-if="alert.expiryDate" class="alert-item-date">Ablaufdatum: {{ alert.expiryDate }}</span>
+                  </div>
+                </div>
+
+                <!-- Info Group -->
+                <div v-if="alerts.some(a => a.type === 'info')" class="alerts-group info-group">
+                  <h4 class="group-title">📌 Produktinformationen</h4>
+                  <div v-for="alert in alerts.filter(a => a.type === 'info')" :key="alert.id" class="alert-item info-item">
+                    <div class="alert-item-header">
+                      <span class="alert-item-icon">{{ alert.icon }}</span>
+                      <div class="alert-item-info">
+                        <p class="alert-item-product-name">{{ alert.productName }}</p>
+                        <p class="alert-item-time">{{ alert.date }}</p>
+                      </div>
+                    </div>
+                    <p class="alert-item-message">{{ alert.message }}</p>
+                    <span v-if="alert.expiryDate" class="alert-item-date">Ablaufdatum: {{ alert.expiryDate }}</span>
+                  </div>
+                </div>
+
+                <!-- Success Group -->
+                <div v-if="alerts.some(a => a.type === 'success')" class="alerts-group success-group">
+                  <div v-for="alert in alerts.filter(a => a.type === 'success')" :key="alert.id" class="alert-item success-item">
+                    <span class="alert-item-icon">{{ alert.icon }}</span>
+                    <div class="alert-item-info">
+                      <p class="alert-item-product-name">{{ alert.title }}</p>
+                      <p class="alert-item-message">{{ alert.message }}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -387,25 +476,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import PantryInterfaceModal from './PantryInterfaceModal.vue'
 import { useProducts } from '../composables/useProducts'
 import { useStatistics } from '../composables/useStatistics'
-import type { Product } from '../types'
+import type { Product, Alert } from '../types'
 
 interface Props {
   currentUser: string
   onLogout: () => void
-}
-
-interface Alert {
-  id: number
-  type: 'warning' | 'info' | 'success'
-  icon: string
-  title: string
-  message: string
-  date: string
 }
 
 const props = defineProps<Props>()
@@ -596,10 +676,7 @@ const getAvailableProductsCount = (): number => {
   }).length
 }
 
-/**
- * Gruppiert Produkte nach Wochentag UND Kategorie (basierend auf addedAt)
- * Gibt nested Record zurück: { 'Mo': { 'Obst': 5, 'Gemüse': 3, ... }, ... }
- */
+// ...existing code...
 const getProductsByWeekdayAndCategory = (): Record<string, Record<string, number>> => {
   const weekdays: string[] = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
   const categories: string[] = ['Obst', 'Gemüse', 'Fleisch', 'Milchprodukte', 'Sonstiges']
@@ -704,6 +781,9 @@ const weeklyStats = computed(() => getProductsByWeekdayAndCategory())
 // Dynamische Alerts - generiert aus Produkten der Vorratskammer
 const alerts = ref<Alert[]>([])
 
+// State für Dropdown-Widget
+const isAlertsDropdownOpen = ref(false)
+
 const userName = computed(() => {
   // Safeguard: props.currentUser könnte leer sein
   const email = props.currentUser ?? ''
@@ -720,6 +800,32 @@ const currentDate = computed(() => {
     day: 'numeric'
   }
   return now.toLocaleDateString('de-DE', options)
+})
+
+// Dynamische Grußformel basierend auf Tageszeit
+const getGreeting = () => {
+  const hour = new Date().getHours()
+  if (hour >= 6 && hour < 12) {
+    return { text: 'Guten Morgen', emoji: '☀️' }
+  } else if (hour >= 12 && hour < 18) {
+    return { text: 'Guten Tag', emoji: '🌤️' }
+  } else if (hour >= 18 && hour < 24) {
+    return { text: 'Guten Abend', emoji: '🌙' }
+  } else {
+    return { text: 'Nachteule', emoji: '🦉' }
+  }
+}
+
+const currentGreeting = computed(() => getGreeting())
+const userStreak = ref(12) // Beispiel: 12 Tage Streak
+const expiringProductsCount = computed(() => {
+  const today = new Date()
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+  return products.value.filter(p => {
+    if (p.status === 'saved' || p.status === 'expired') return false
+    const expiryDate = new Date(p.expiryDate)
+    return expiryDate >= today && expiryDate <= nextWeek
+  }).length
 })
 
 // Category Colors
@@ -790,17 +896,38 @@ const logout = () => {
 }
 
 // Scroll zu einer bestimmten Section
-const scrollToSection = (sectionClass: string) => {
-  const scrollContainer = document.querySelector('.scroll-container') as HTMLElement
-  const section = document.querySelector(`.${sectionClass}`) as HTMLElement
+const scrollToSection = (sectionId: string) => {
+  // Kleine Verzögerung um sicherzustellen dass das DOM bereit ist
+  setTimeout(() => {
+    const scrollContainer = document.querySelector('.scroll-container') as HTMLElement
+    const targetSection = document.getElementById(sectionId) as HTMLElement
 
-  if (scrollContainer && section) {
-    const sectionTop = section.offsetTop
-    scrollContainer.scrollTo({
-      top: sectionTop - 50,
-      behavior: 'smooth'
-    })
-  }
+    if (!scrollContainer) {
+      console.error('❌ scroll-container nicht gefunden')
+      return
+    }
+
+    if (!targetSection) {
+      console.error(`❌ Section mit ID "${sectionId}" nicht gefunden`)
+      return
+    }
+
+    // Berechne die Position des Elements relativ zu seinem Eltern-Container
+    let currentElement = targetSection
+    let totalOffset = 0
+
+    // Gehe alle Eltern durch bis zum scroll-container
+    while (currentElement && currentElement !== scrollContainer) {
+      totalOffset += currentElement.offsetTop
+      currentElement = currentElement.offsetParent as HTMLElement
+    }
+
+    // Scrolle zur berechneten Position mit 50px Abstand oben
+    const scrollPosition = Math.max(0, totalOffset - 50)
+    scrollContainer.scrollTop = scrollPosition
+
+    console.log('✅ Scrolled to section:', sectionId, 'Position:', scrollPosition)
+  }, 50)
 }
 
 // Handle products update from PantryInterfaceModal
@@ -853,51 +980,120 @@ const generateAlertsFromProducts = () => {
     return `${day}.${month}.${year}`
   }
 
-  // Finde Produkte die in 2 Tagen oder weniger ablaufen (KRITISCH)
-  const expiringIn2Days = products.value.filter(p => {
-    const daysUntil = getDaysUntilExpiry(p.expiryDate)
-    return daysUntil >= 0 && daysUntil <= 2 && p.status !== 'saved' && p.status !== 'expired'
-  })
-
-  if (expiringIn2Days.length > 0) {
-    const firstProduct = expiringIn2Days[0]
-    if (firstProduct) {
-      generatedAlerts.push({
-        id: alertId++,
-        type: 'warning',
-        icon: '⏰',
-        title: `${firstProduct.name} läuft in ${getDaysUntilExpiry(firstProduct.expiryDate)} Tag(en) ab`,
-        message: `Ablaufdatum: ${formatDate(firstProduct.expiryDate)} - bitte schnell verwenden!`,
-        date: getDaysUntilExpiry(firstProduct.expiryDate) === 0 ? 'Heute' : 'In ' + getDaysUntilExpiry(firstProduct.expiryDate) + ' Tagen'
-      })
+  // Professionelle Funktion zur Formatierung der Zeitspanne
+  const getTimeSpanDescription = (daysUntil: number, productName: string): { title: string; message: string; date: string } => {
+    if (daysUntil < 0) {
+      const daysSince = Math.abs(daysUntil)
+      if (daysSince === 0) {
+        return {
+          title: `${productName} ist heute abgelaufen`,
+          message: 'Dieses Produkt sollte sofort aus der Vorratskammer entfernt werden',
+          date: 'Heute abgelaufen'
+        }
+      } else if (daysSince === 1) {
+        return {
+          title: `${productName} ist gestern abgelaufen`,
+          message: 'Dieses Produkt sollte sofort aus der Vorratskammer entfernt werden',
+          date: 'Vor 1 Tag'
+        }
+      } else {
+        return {
+          title: `${productName} ist vor ${daysSince} Tagen abgelaufen`,
+          message: 'Dieses Produkt sollte sofort aus der Vorratskammer entfernt werden',
+          date: `Vor ${daysSince} Tagen`
+        }
+      }
+    } else if (daysUntil === 0) {
+      return {
+        title: `${productName} läuft heute ab`,
+        message: 'Verwenden Sie dieses Produkt noch heute oder entfernen Sie es',
+        date: 'Heute ablaufend'
+      }
+    } else if (daysUntil === 1) {
+      return {
+        title: `${productName} läuft morgen ab`,
+        message: 'Bitte verwenden Sie dieses Produkt in Kürze',
+        date: 'Morgen'
+      }
+    } else if (daysUntil <= 3) {
+      return {
+        title: `${productName} läuft in ${daysUntil} Tagen ab`,
+        message: 'Verwenden Sie dieses Produkt bald oder planen Sie dessen Verbrauch',
+        date: `In ${daysUntil} Tagen`
+      }
+    } else if (daysUntil <= 7) {
+      return {
+        title: `${productName} läuft in ${daysUntil} Tagen ab`,
+        message: 'Planen Sie den Verbrauch dieses Produkts in den kommenden Tagen',
+        date: `In ${daysUntil} Tagen`
+      }
+    } else {
+      return {
+        title: `${productName} läuft in ${daysUntil} Tagen ab`,
+        message: 'Dieses Produkt hat noch ausreichend Zeit bis zum Ablaufdatum',
+        date: `In ${daysUntil} Tagen`
+      }
     }
   }
 
-  // Finde Produkte die in 3-7 Tagen ablaufen (INFO)
-  const expiringIn3to7Days = products.value.filter(p => {
-    const daysUntil = getDaysUntilExpiry(p.expiryDate)
-    return daysUntil > 2 && daysUntil <= 7 && p.status !== 'saved' && p.status !== 'expired'
+  // Sortiere Produkte nach Ablaufdatum (ablaufend zuerst, dann abgelaufen)
+  const sortedProducts = products.value.sort((a, b) => {
+    const daysA = getDaysUntilExpiry(a.expiryDate)
+    const daysB = getDaysUntilExpiry(b.expiryDate)
+    return daysA - daysB
   })
 
-  if (expiringIn3to7Days.length > 0) {
+  // Generiere Meldungen für ablaufende und abgelaufene Produkte
+  const alertableProducts = sortedProducts.filter(p => {
+    const daysUntil = getDaysUntilExpiry(p.expiryDate)
+    // Zeige: abgelaufene Produkte (daysUntil < 0) oder ablaufend innerhalb von 7 Tagen
+    return daysUntil < 0 || (daysUntil >= 0 && daysUntil <= 7)
+  })
+
+  // Erstelle für jedes Produkt eine einzelne Meldung
+  alertableProducts.forEach((product) => {
+    const daysUntil = getDaysUntilExpiry(product.expiryDate)
+    const timeSpan = getTimeSpanDescription(daysUntil, product.name)
+
+    // Bestimme Alert-Typ basierend auf Ablaufdatum
+    let alertType: 'warning' | 'info' | 'success' = 'info'
+    let icon = '📌'
+
+    if (daysUntil < 0) {
+      // Abgelaufen - KRITISCH
+      alertType = 'warning'
+      icon = '⚠️'
+    } else if (daysUntil <= 2) {
+      // Läuft bald ab - WARNUNG
+      alertType = 'warning'
+      icon = '⏰'
+    } else if (daysUntil <= 7) {
+      // Läuft ab innerhalb einer Woche - INFO
+      alertType = 'info'
+      icon = '📌'
+    }
+
     generatedAlerts.push({
       id: alertId++,
-      type: 'info',
-      icon: '📌',
-      title: `${expiringIn3to7Days.length} Produkt(e) laufen in 3-7 Tagen ab`,
-      message: `Planen Sie den Verbrauch dieser Produkte`,
-      date: 'In 3-7 Tagen'
+      type: alertType,
+      icon: icon,
+      title: timeSpan.title,
+      message: timeSpan.message,
+      date: timeSpan.date,
+      expiryDate: product.expiryDate,
+      productName: product.name,
+      category: product.category
     })
-  }
+  })
 
-  // Wenn keine Warnungen, zeige Success Message
+  // Wenn keine Meldungen, zeige Success Message
   if (generatedAlerts.length === 0) {
     generatedAlerts.push({
       id: alertId++,
       type: 'success',
       icon: '✅',
       title: 'Alles im grünen Bereich!',
-      message: 'Keine Produkte laufen bald ab',
+      message: 'Keine Produkte laufen bald ab oder sind abgelaufen',
       date: 'Heute'
     })
   }
@@ -1076,6 +1272,171 @@ const createGradientEffects = () => {
   position: relative;
   overflow-x: hidden;
   color: #ffffff;
+  --available-dash: 0;
+  --expired-dash: 0;
+  --expired-offset: 0;
+}
+
+/* Personalized Welcome Section */
+.personalized-welcome {
+  background: transparent !important;
+  padding: 4rem 2rem !important;
+}
+
+.welcome-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  /* Mehrschichtiges elegantes Design */
+  background:
+    linear-gradient(135deg, rgba(255, 96, 60, 0.04) 0%, rgba(220, 80, 143, 0.02) 100%),
+    radial-gradient(ellipse at top right, rgba(255, 96, 60, 0.06), transparent 60%),
+    radial-gradient(ellipse at bottom left, rgba(220, 80, 143, 0.05), transparent 60%);
+
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+
+  border: 1px solid rgba(255, 96, 60, 0.12);
+  border-radius: 28px;
+  padding: 3.5rem 4rem;
+
+  box-shadow:
+    0 0 60px rgba(255, 96, 60, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1);
+
+  overflow: visible;
+}
+
+/* Eleganter Hintergrund-Effekt */
+.welcome-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(255, 96, 60, 0.02) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(220, 80, 143, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  border-radius: 28px;
+}
+
+.welcome-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  border-radius: 28px 28px 0 0;
+}
+
+.greeting-section {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.greeting-emoji {
+  font-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.95;
+  filter: drop-shadow(0 4px 12px rgba(255, 96, 60, 0.15));
+}
+
+.greeting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.greeting-main {
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.97);
+  margin: 0;
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 220, 200, 0.85) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.greeting-sub {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+
+.greeting-date {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  letter-spacing: 0.1px;
+  font-weight: 400;
+}
+
+.info-badges {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.badge:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+}
+
+.badge-emoji {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* Alert Badge - Modern Style */
+/* Entfernt - Badge wird nicht mehr angezeigt */
+
+.badge-success {
+  /* Entfernt - Badge wird nicht mehr angezeigt */
 }
 
 /* Home Page Background Pseudo-Element für schwarzen Hintergrund */
@@ -1125,6 +1486,16 @@ const createGradientEffects = () => {
   -webkit-overflow-scrolling: touch;
   background: transparent;
   min-height: 0;
+}
+
+/* Verstecke die Scrollbar des scroll-containers */
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-container {
+  -ms-overflow-style: none;  /* IE und Edge */
+  scrollbar-width: none;     /* Firefox */
 }
 
 
@@ -1364,25 +1735,25 @@ const createGradientEffects = () => {
   /* Base Widget Style */
 
   .stat-widget {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    background: transparent;
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     padding: 1.2rem;
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
   }
 
   .stat-widget:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-3px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2),
-    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
   }
 
   .stat-widget h3 {
@@ -1422,8 +1793,13 @@ const createGradientEffects = () => {
   .widget-categories {
     grid-column: 1;
     grid-row: 1;
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .widget-categories:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .categories-list {
@@ -1497,13 +1873,13 @@ const createGradientEffects = () => {
   }
 
   .widget-total {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .widget-total:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .widget-main-content {
@@ -1596,13 +1972,13 @@ const createGradientEffects = () => {
   .widget-saved {
     grid-column: 3;
     grid-row: 1;
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .widget-saved:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   /* Expiring Widget - Small */
@@ -1838,10 +2214,15 @@ const createGradientEffects = () => {
   .widget-product-status {
     grid-column: 3 / 5;
     grid-row: 2;
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
+  }
+
+  .widget-product-status:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .widget-product-status h3 {
@@ -1874,22 +2255,43 @@ const createGradientEffects = () => {
     fill: none;
     stroke-width: 20;
     stroke-linecap: round;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: stroke-dasharray 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    stroke-dasharray: 0, 251.2;
+    stroke-dashoffset: 0;
   }
 
   .pie-segment.available {
     stroke: #00D966;
     filter: drop-shadow(0 0 8px rgba(0, 217, 102, 0.4));
+    animation: fillAvailable 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   .pie-segment.expired {
     stroke: #FF2E4B;
     filter: drop-shadow(0 0 8px rgba(255, 46, 75, 0.4));
+    animation: fillExpired 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
-  .pie-segment:hover {
-    filter: brightness(1.2) drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
-    stroke-width: 22;
+  @keyframes fillAvailable {
+    from {
+      stroke-dasharray: 0, 251.2;
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dasharray: var(--available-dash, 0), 251.2;
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes fillExpired {
+    from {
+      stroke-dasharray: 0, 251.2;
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dasharray: var(--expired-dash, 0), 251.2;
+      stroke-dashoffset: var(--expired-offset, 0);
+    }
   }
 
   .pie-center {
@@ -2147,6 +2549,268 @@ const createGradientEffects = () => {
     margin: 0;
   }
 
+  /* Alerts Dropdown Widget */
+  .alerts-dropdown-widget {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .alerts-dropdown-toggle {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .alerts-dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .alerts-dropdown-toggle.is-open {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .dropdown-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  .dropdown-title {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex: 1;
+    text-align: left;
+  }
+
+  .alert-count {
+    background: rgba(255, 96, 60, 0.3);
+    color: #FF603C;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .dropdown-arrow {
+    transition: transform 0.3s ease;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .dropdown-arrow.is-expanded {
+    transform: rotate(180deg);
+  }
+
+  .alerts-dropdown-content {
+    position: absolute;
+    top: calc(100% + 0.8rem);
+    left: 0;
+    right: 0;
+    background: rgba(20, 20, 30, 0.95);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 0;
+    max-height: 600px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .no-alerts-dropdown {
+    background: rgba(144, 238, 144, 0.05);
+    border: 1px solid rgba(144, 238, 144, 0.2);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    margin: 1rem;
+  }
+
+  .alerts-groups {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .alerts-group {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .alerts-group:last-child {
+    border-bottom: none;
+  }
+
+  .group-title {
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0 0 0.8rem 0;
+    padding: 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+  }
+
+  .alert-item {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: default;
+  }
+
+  .alert-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .alert-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .alert-item-header {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    margin-bottom: 0.6rem;
+  }
+
+  .alert-item-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .alert-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .alert-item-product-name {
+    color: #ffffff;
+    font-weight: 700;
+    margin: 0;
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+
+  .alert-item-time {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    margin: 0.2rem 0 0 0;
+    font-weight: 500;
+  }
+
+  .alert-item-message {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+    margin: 0.5rem 0 0.4rem 0;
+    line-height: 1.4;
+  }
+
+  .alert-item-date {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    display: inline-block;
+    margin-top: 0.4rem;
+  }
+
+  /* Alert Item Type Styles */
+  .expired-item {
+    border-left: 3px solid #FF2E4B;
+    background: rgba(255, 46, 75, 0.05);
+  }
+
+  .expired-item:hover {
+    background: rgba(255, 46, 75, 0.08);
+  }
+
+  .expiring-item {
+    border-left: 3px solid #FF9800;
+    background: rgba(255, 152, 0, 0.05);
+  }
+
+  .expiring-item:hover {
+    background: rgba(255, 152, 0, 0.08);
+  }
+
+  .info-item {
+    border-left: 3px solid #2196F3;
+    background: rgba(33, 150, 243, 0.05);
+  }
+
+  .info-item:hover {
+    background: rgba(33, 150, 243, 0.08);
+  }
+
+  .success-item {
+    border-left: 3px solid #4CAF50;
+    background: rgba(76, 175, 80, 0.05);
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+  }
+
+  .success-item:hover {
+    background: rgba(76, 175, 80, 0.08);
+  }
+
+  /* Scrollbar styling for dropdown */
+  .alerts-dropdown-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .alerts-dropdown-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+  }
+
+  .alerts-dropdown-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .alerts-dropdown-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
   /* Footer Button Bar */
   .footer-bar {
     background: transparent;
@@ -2271,12 +2935,14 @@ const createGradientEffects = () => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1rem 0.6rem;
+    padding: 1rem 0.6rem 1rem 0.6rem;
     position: fixed;
     right: 0;
     top: 80px;
     z-index: 10;
     background: transparent;
+    pointer-events: auto;
+    margin-right: 0;
   }
 
   /* Scrollbar styling for sidebar */
@@ -2368,53 +3034,45 @@ const createGradientEffects = () => {
 
   .action-btn {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.75rem;
-    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.7rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    text-align: left;
+    transition: all 0.25s ease;
+    text-align: center;
     overflow: hidden;
     position: relative;
   }
 
-  .action-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-  }
-
   .action-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: #ffffff;
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(255, 100, 100, 0.15);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
   }
 
-  .action-btn:hover::before {
-    transform: translateX(100%);
+  .action-btn:active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .action-icon {
-    font-size: 1.1rem;
+    font-size: 1.8rem;
     flex-shrink: 0;
   }
 
   .action-text {
-    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   /* Summary Card */

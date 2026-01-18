@@ -6,17 +6,33 @@
       <!-- Toolbar Section -->
       <div class="pantry-toolbar">
         <!-- Search Bar (Left) -->
-        <div class="search-wrapper">
-          <div class="search-input-container">
+        <div class="search-wrapper" :class="{ open: searchOpen }">
+          <button
+            class="search-toggle-btn"
+            @click="searchOpen = true"
+            v-if="!searchOpen"
+            title="Suche öffnen"
+          >
+            <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+          </button>
+          <div class="search-input-container" v-if="searchOpen">
             <input
               type="text"
               class="search-input"
               placeholder="Produkt suchen…"
               v-model="searchQuery"
               @focus="searchFocused = true"
-              @blur="searchFocused = false"
+              @blur="() => { searchFocused = false; if (!searchQuery) searchOpen = false }"
+              ref="searchInput"
+              autofocus
             />
-            <span class="search-icon">🔍</span>
+            <svg class="search-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
             <div v-if="searchFocused" class="border-light"></div>
           </div>
         </div>
@@ -40,7 +56,6 @@
         <!-- Add Button & Dropdown (Right) -->
         <div class="toolbar-actions">
           <button class="add-product-btn" @click="openAddProductModal">
-            <span class="btn-icon">+</span>
             <span class="btn-text">Hinzufügen</span>
           </button>
           <div class="dropdown-wrapper">
@@ -77,40 +92,43 @@
             <div
               v-for="product in activeProducts"
               :key="product.id"
-              class="product-card product-item"
-              :style="{
-                backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
-                backgroundColor: product.imageBase64 ? 'transparent' : getCategoryColor(product.category)
-              }"
+              class="product-item-wrapper"
             >
-              <!-- Image Overlay -->
-              <div v-if="product.imageBase64" class="image-overlay"></div>
+              <div
+                class="product-card product-item"
+                :class="{ 'no-image': !product.imageBase64 }"
+                :style="{
+                  backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
+                  backgroundColor: product.imageBase64 ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.02)',
+                  borderColor: getCategoryColor(product.category),
+                  boxShadow: `0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 0 16px ${getCategoryColor(product.category)}40`
+                }"
+              >
+                <!-- Image Overlay -->
+                <div v-if="product.imageBase64" class="image-overlay"></div>
 
-              <!-- Top Island - Delete Button -->
-              <div class="button-island button-island-top">
-                <button v-if="product.id" class="island-btn delete-btn-island" @click="deleteProduct(product.id)" title="Entfernen">
-                  Entfernen
+                <!-- Card Content - Top Header with Name and Date -->
+                <div class="card-header">
+                  <div class="product-name">{{ product.name }}</div>
+                  <div class="product-expiry">{{ formatDate(product.expiryDate) }}</div>
+                </div>
+              </div>
+
+              <!-- Button Toolbar - Below the card -->
+              <div class="product-toolbar">
+                <button v-if="product.id" class="toolbar-btn delete-btn-toolbar" @click="deleteProduct(product.id)" title="Entfernen">
+                  ✕
                 </button>
-              </div>
-
-              <!-- Card Content - Middle -->
-              <div class="card-content">
-                <div class="product-name">{{ product.name }}</div>
-                <div class="product-expiry">{{ formatDate(product.expiryDate) }}</div>
-              </div>
-
-              <!-- Bottom Island - Consume Button -->
-              <div class="button-island button-island-bottom">
                 <button
                   v-if="product.id && product.status !== 'saved'"
-                  class="island-btn consume-btn-island"
+                  class="toolbar-btn consume-btn-toolbar"
                   :style="{ backgroundColor: getCategoryColor(product.category) }"
                   @click="rescueProduct(product.id)"
                   title="Produkt als verbraucht markieren">
-                  Verzehrt
+                  VERZEHRT
                 </button>
-                <div v-else-if="product.status === 'saved'" class="island-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
-                  ✓ Verzehrt
+                <div v-else-if="product.status === 'saved'" class="toolbar-badge">
+                  ✓ VERZEHRT
                 </div>
               </div>
             </div>
@@ -124,41 +142,43 @@
             <div
               v-for="product in expiredProducts"
               :key="product.id"
-              class="product-card product-item expired-product"
-              :class="{ 'pulse-animation': true }"
-              :style="{
-                backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
-                backgroundColor: product.imageBase64 ? 'transparent' : '#333333'
-              }"
+              class="product-item-wrapper"
             >
-              <!-- Image Overlay -->
-              <div v-if="product.imageBase64" class="image-overlay expired-overlay"></div>
+              <div
+                class="product-card product-item expired-product"
+                :class="{ 'pulse-animation': true, 'no-image': !product.imageBase64 }"
+                :style="{
+                  backgroundImage: product.imageBase64 ? `url(${product.imageBase64})` : 'none',
+                  backgroundColor: product.imageBase64 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                  borderColor: 'rgba(255, 100, 100, 0.6)',
+                  boxShadow: `0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 0 16px rgba(255, 100, 100, 0.25)`
+                }"
+              >
+                <!-- Image Overlay -->
+                <div v-if="product.imageBase64" class="image-overlay expired-overlay"></div>
 
-              <!-- Top Island - Delete Button -->
-              <div class="button-island button-island-top">
-                <button v-if="product.id" class="island-btn delete-btn-island" @click="deleteProduct(product.id)" title="Entfernen">
-                  Entfernen
+                <!-- Card Content - Top Header with Name and Date -->
+                <div class="card-header">
+                  <div class="product-name">{{ product.name }}</div>
+                  <div class="product-expiry expired-date">{{ formatDate(product.expiryDate) }}</div>
+                </div>
+              </div>
+
+              <!-- Button Toolbar - Below the card -->
+              <div class="product-toolbar">
+                <button v-if="product.id" class="toolbar-btn delete-btn-toolbar" @click="deleteProduct(product.id)" title="Entfernen">
+                  ✕
                 </button>
-              </div>
-
-              <!-- Card Content - Middle -->
-              <div class="card-content">
-                <div class="product-name">{{ product.name }}</div>
-                <div class="product-expiry expired-date">{{ formatDate(product.expiryDate) }}</div>
-              </div>
-
-              <!-- Bottom Island - Consume Button -->
-              <div class="button-island button-island-bottom">
                 <button
                   v-if="product.id && product.status !== 'saved'"
-                  class="island-btn consume-btn-island expired-consume"
+                  class="toolbar-btn consume-btn-toolbar"
                   :style="{ backgroundColor: getCategoryColor(product.category) }"
                   @click="rescueProduct(product.id)"
                   title="Produkt als verbraucht markieren">
-                  Verzehrt
+                  VERZEHRT
                 </button>
-                <div v-else-if="product.status === 'saved'" class="island-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
-                  ✓ Verzehrt
+                <div v-else-if="product.status === 'saved'" class="toolbar-badge">
+                  ✓ VERZEHRT
                 </div>
               </div>
             </div>
@@ -373,6 +393,8 @@ const emit = defineEmits<{
 
 const searchQuery = ref('')
 const searchFocused = ref(false)
+const searchOpen = ref(false)
+const searchInput = ref<HTMLInputElement | null>(null)
 const activeCategory = ref('Alle')
 const selectedSort = ref('Neu hinzugefügt')
 const showSortDropdown = ref(false)
@@ -837,10 +859,10 @@ const rescueProduct = async (id: number) => {
 .pantry-main-container {
   max-width: 1400px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 30px;
   padding: 3rem;
   min-height: 800px;
@@ -880,10 +902,10 @@ const rescueProduct = async (id: number) => {
 
 .category-btn {
   padding: 0.7rem 1.4rem;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   color: rgba(255, 255, 255, 0.65);
   font-size: 0.85rem;
@@ -914,7 +936,7 @@ const rescueProduct = async (id: number) => {
 
 .category-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.8);
   transform: translateY(-1px);
 }
@@ -922,12 +944,16 @@ const rescueProduct = async (id: number) => {
 .category-btn.active {
   color: rgba(255, 255, 255, 0.95);
   font-weight: 800;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15),
               0 0 12px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
 .category-btn.active:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
   filter: brightness(1.1);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
               0 0 16px rgba(0, 0, 0, 0.2);
@@ -981,23 +1007,86 @@ const rescueProduct = async (id: number) => {
 /* Search Bar */
 .search-wrapper {
   flex: 0 0 auto;
-  min-width: 280px;
-  max-width: 350px;
   position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-wrapper.open {
+  min-width: 200px;
+  max-width: 260px;
+}
+
+.search-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.65rem 0.65rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  animation: searchButtonIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.search-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.search-icon-svg {
+  width: 20px;
+  height: 20px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes searchButtonIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .search-input-container {
   position: relative;
   width: 100%;
+  animation: searchInputIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes searchInputIn {
+  from {
+    opacity: 0;
+    transform: scaleX(0.9) translateX(-10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1) translateX(0);
+    filter: blur(0px);
+  }
 }
 
 .search-input {
   width: 100%;
   padding: 0.8rem 2rem 0.8rem 1.1rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: none;
   border-radius: 12px;
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
@@ -1006,6 +1095,18 @@ const rescueProduct = async (id: number) => {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 1;
+  animation: searchInputFade 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes searchInputFade {
+  from {
+    opacity: 0;
+    background: transparent;
+  }
+  to {
+    opacity: 1;
+    background: transparent;
+  }
 }
 
 .search-input::placeholder {
@@ -1015,9 +1116,10 @@ const rescueProduct = async (id: number) => {
 
 .search-input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  background: transparent;
+  border: none;
+  box-shadow: 0 6px 20px rgba(255, 96, 60, 0.3),
+              inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
 
 .border-light {
@@ -1031,12 +1133,13 @@ const rescueProduct = async (id: number) => {
   z-index: 0;
   background: conic-gradient(
     from 0deg,
-    #06D6A0 0%,
-    #9D4EDD 20%,
-    #FF6B6B 40%,
-    #FFD93D 60%,
-    #4ECDC4 80%,
-    #06D6A0 100%
+    rgba(255, 96, 60, 0.4) 0%,
+    rgba(255, 110, 60, 0.3) 15%,
+    rgba(255, 64, 64, 0.45) 30%,
+    rgba(255, 48, 48, 0.3) 45%,
+    rgba(220, 80, 143, 0.4) 60%,
+    rgba(220, 80, 160, 0.3) 75%,
+    rgba(255, 96, 60, 0.4) 100%
   );
   padding: 1.5px;
   animation: rotateBorder 5s linear infinite;
@@ -1044,25 +1147,25 @@ const rescueProduct = async (id: number) => {
 
 @keyframes rotateBorder {
   0% {
-    filter: drop-shadow(0 0 6px rgba(6, 214, 160, 0.5)) drop-shadow(0 0 2px rgba(6, 214, 160, 0.3));
+    filter: drop-shadow(0 0 6px rgba(255, 96, 60, 0.25)) drop-shadow(0 0 2px rgba(255, 96, 60, 0.15));
   }
   20% {
-    filter: drop-shadow(0 0 8px rgba(6, 214, 160, 0.6)) drop-shadow(0 0 3px rgba(6, 214, 160, 0.4));
+    filter: drop-shadow(0 0 8px rgba(255, 96, 60, 0.3)) drop-shadow(0 0 3px rgba(255, 96, 60, 0.2));
   }
   25% {
-    filter: drop-shadow(0 0 8px rgba(157, 78, 221, 0.6)) drop-shadow(0 0 3px rgba(157, 78, 221, 0.4));
+    filter: drop-shadow(0 0 8px rgba(255, 64, 64, 0.3)) drop-shadow(0 0 3px rgba(255, 64, 64, 0.2));
   }
   45% {
-    filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.6)) drop-shadow(0 0 3px rgba(255, 107, 107, 0.4));
+    filter: drop-shadow(0 0 8px rgba(220, 80, 143, 0.3)) drop-shadow(0 0 3px rgba(220, 80, 143, 0.2));
   }
   50% {
-    filter: drop-shadow(0 0 8px rgba(255, 217, 61, 0.6)) drop-shadow(0 0 3px rgba(255, 217, 61, 0.4));
+    filter: drop-shadow(0 0 8px rgba(255, 96, 60, 0.3)) drop-shadow(0 0 3px rgba(255, 96, 60, 0.2));
   }
   75% {
-    filter: drop-shadow(0 0 8px rgba(78, 205, 196, 0.6)) drop-shadow(0 0 3px rgba(78, 205, 196, 0.4));
+    filter: drop-shadow(0 0 8px rgba(255, 64, 64, 0.3)) drop-shadow(0 0 3px rgba(255, 64, 64, 0.2));
   }
   100% {
-    filter: drop-shadow(0 0 6px rgba(6, 214, 160, 0.5)) drop-shadow(0 0 2px rgba(6, 214, 160, 0.3));
+    filter: drop-shadow(0 0 6px rgba(255, 96, 60, 0.25)) drop-shadow(0 0 2px rgba(255, 96, 60, 0.15));
   }
 }
 
@@ -1075,6 +1178,19 @@ const rescueProduct = async (id: number) => {
   opacity: 0.45;
   font-size: 0.95rem;
   transition: opacity 0.3s ease;
+}
+
+.search-icon-inline {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0.5;
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  transition: all 0.3s ease;
 }
 
 .search-input:focus ~ .search-icon {
@@ -1092,10 +1208,10 @@ const rescueProduct = async (id: number) => {
 
 .add-product-btn {
   padding: 0.55rem 1rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.75rem;
@@ -1106,11 +1222,12 @@ const rescueProduct = async (id: number) => {
   gap: 0.4rem;
   white-space: nowrap;
   letter-spacing: 0.2px;
+  transition: all 0.3s ease;
 }
 
 .add-product-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.95);
   transform: translateY(-1px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -1129,10 +1246,10 @@ const rescueProduct = async (id: number) => {
 
 .dropdown-btn {
   padding: 0.55rem 1rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.75rem;
@@ -1143,11 +1260,12 @@ const rescueProduct = async (id: number) => {
   gap: 0.4rem;
   white-space: nowrap;
   letter-spacing: 0.2px;
+  transition: all 0.3s ease;
 }
 
 .dropdown-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.95);
   transform: translateY(-1px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -1251,46 +1369,169 @@ const rescueProduct = async (id: number) => {
   font-weight: 700;
 }
 
-/* Product Cards */
+/* Product Item Wrapper - Container für Karte + Toolbar */
+.product-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.product-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.toolbar-btn {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15px;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.delete-btn-toolbar {
+  flex: 0.25;
+  background: rgba(255, 60, 80, 0.15);
+  color: rgba(255, 150, 170, 0.98);
+  font-size: 0.75rem;
+  padding: 0.35rem 0.3rem;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  box-shadow: 0 4px 20px rgba(255, 60, 80, 0.15),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 60, 80, 0.3);
+}
+
+.delete-btn-toolbar:hover {
+  background: rgba(255, 60, 80, 0.25);
+  border-color: rgba(255, 120, 140, 0.5);
+  color: rgba(255, 180, 190, 1);
+  box-shadow: 0 6px 25px rgba(255, 60, 80, 0.2),
+              inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transform: none;
+}
+
+.delete-btn-toolbar:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(255, 60, 80, 0.1),
+              inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.consume-btn-toolbar {
+  flex: 1;
+  max-width: none;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  padding: 0.35rem 0.8rem !important;
+  border-radius: 12px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.consume-btn-toolbar:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15),
+              inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  transform: none;
+}
+
+.consume-btn-toolbar:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.toolbar-badge {
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(76, 175, 80, 0.05);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+  white-space: nowrap;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.08),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-badge:hover {
+  background: rgba(76, 175, 80, 0.18);
+  border-color: rgba(76, 175, 80, 0.35);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.12),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
 .product-card {
   aspect-ratio: 1 / 1;
-  max-width: 220px;
+  max-width: 340px;
   width: 100%;
   height: auto;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(35px);
-  -webkit-backdrop-filter: blur(35px);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   padding-top: 0;
   cursor: pointer;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25),
-              inset 0 1px 1px rgba(255, 255, 255, 0.2),
-              0 0 25px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12),
+              inset 0 1px 1px rgba(255, 255, 255, 0.15);
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  background-size: cover;
+  background-size: 133.33%;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: local;
   will-change: transform, box-shadow, border-color;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: all 0.3s ease;
 }
 
-.product-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35),
-              inset 0 1px 1px rgba(255, 255, 255, 0.3),
-              0 0 30px rgba(255, 255, 255, 0.15);
-  transform: translateY(-4px);
-}
 
 /* Island Button Positioning */
 .button-island {
@@ -1346,20 +1587,87 @@ const rescueProduct = async (id: number) => {
               inset 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
+.button-island-dual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem !important;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  background: rgba(20, 20, 30, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  bottom: 12px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+.button-island-dual .island-btn {
+  padding: 0.5rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.button-island-dual .delete-btn-icon {
+  background: rgba(255, 60, 80, 0.25);
+  border-color: rgba(255, 60, 80, 0.4);
+  color: rgba(255, 120, 140, 0.95);
+  font-size: 1.1rem;
+  font-weight: 900;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-island-dual .delete-btn-icon:hover {
+  background: rgba(255, 60, 80, 0.4);
+  border-color: rgba(255, 100, 120, 0.6);
+  color: rgba(255, 150, 160, 0.98);
+}
+
+.button-island-dual .consume-btn-island {
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.button-island-dual .consume-btn-island:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
 .island-btn {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.98);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   padding: 0;
   transition: all 0.3s ease;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .delete-btn-island {
@@ -1428,26 +1736,144 @@ const rescueProduct = async (id: number) => {
   border-radius: 24px;
 }
 
-.product-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
-              inset 0 1px 1px rgba(255, 255, 255, 0.25);
-}
 
 .card-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
-  position: relative;
-  z-index: 1;
+  gap: 0.4rem;
   width: 100%;
   flex: 1;
   padding: 1rem 0.8rem;
   text-align: center;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: inherit;
+  z-index: 2;
+}
+
+/* Card Header - Top Header ABOVE the product card */
+.card-header {
+  position: absolute;
+  top: -120px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  width: 100%;
+  z-index: 3;
+  background: transparent;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Category Emojis Container - Animated with bouncing physics */
+.category-emoji-container {
+  display: none;
+}
+
+.emoji-item {
+  display: none;
+}
+
+@keyframes floatBounce {
+  0% {
+    transform: translate(15%, 15%) scale(1);
+  }
+  25% {
+    transform: translate(75%, 20%) scale(0.95);
+  }
+  50% {
+    transform: translate(40%, 70%) scale(1.05);
+  }
+  75% {
+    transform: translate(80%, 55%) scale(0.9);
+  }
+  100% {
+    transform: translate(15%, 15%) scale(1);
+  }
+}
+
+@keyframes floatBounce2 {
+  0% {
+    transform: translate(70%, 60%) scale(0.95);
+  }
+  25% {
+    transform: translate(20%, 70%) scale(1);
+  }
+  50% {
+    transform: translate(75%, 30%) scale(1.05);
+  }
+  75% {
+    transform: translate(30%, 40%) scale(0.9);
+  }
+  100% {
+    transform: translate(70%, 60%) scale(0.95);
+  }
+}
+
+@keyframes floatBounce3 {
+  0% {
+    transform: translate(45%, 80%) scale(1.05);
+  }
+  25% {
+    transform: translate(60%, 40%) scale(0.95);
+  }
+  50% {
+    transform: translate(15%, 50%) scale(1);
+  }
+  75% {
+    transform: translate(70%, 75%) scale(1.05);
+  }
+  100% {
+    transform: translate(45%, 80%) scale(1.05);
+  }
+}
+
+/* Old Category Emoji Display - Now unused but kept for compatibility */
+.category-emoji {
+  display: none;
+}
+
+.product-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  word-break: break-word;
+  text-align: center;
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+}
+
+.product-expiry {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.1px;
+  text-align: center;
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-height: 32px;
 }
 
 /* Old button styles - now using island buttons */
@@ -1679,10 +2105,10 @@ const rescueProduct = async (id: number) => {
 .products-section {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 1rem;
   width: 100%;
   overflow: visible;
-  padding-bottom: 2rem;
+  padding-bottom: 1rem;
 }
 
 .section-title {
@@ -1691,7 +2117,7 @@ const rescueProduct = async (id: number) => {
   color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding-bottom: 0.8rem;
+  padding-bottom: 0.5rem;
   border-bottom: 2px solid rgba(255, 255, 255, 0.15);
 }
 
@@ -1702,10 +2128,11 @@ const rescueProduct = async (id: number) => {
 
 .products-list {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 1.8rem;
-  padding-bottom: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.2rem;
+  padding-bottom: 1rem;
   overflow: visible;
+  padding-top: 1rem;
 }
 
 /* Expired Product Styling */
@@ -2710,7 +3137,6 @@ const rescueProduct = async (id: number) => {
   background: rgba(100, 200, 255, 0.2);
   color: #64c8ff;
   border: 1.5px solid rgba(100, 200, 255, 0.4);
-  flex: 1;
 }
 
 .capture-btn:hover {
