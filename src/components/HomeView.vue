@@ -163,52 +163,34 @@
                 <div class="chart-container">
                   <div class="chart-grid"></div>
 
-                  <!-- SVG Liniendiagramm -->
-                  <svg class="line-chart" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet">
-                    <!-- Baseline (Y=0) als Referenzlinie -->
-                    <line x1="0" y1="180" x2="360" y2="180" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2,2" />
-
-                    <!-- Linien für jede Kategorie -->
-                    <polyline
-                      v-for="category in chartCategories"
-                      :key="'line-' + category"
-                      :points="getChartPointsForCategory(category)"
-                      :style="{ stroke: getCategoryColor(category) }"
-                      class="chart-line"
-                    />
-
-                    <!-- Datenpunkte (Dots) für jede Kategorie -->
-                    <g v-for="category in chartCategories" :key="'dots-' + category">
-                      <circle
-                        v-for="(day, dayIndex) in weekDays"
-                        :key="'dot-' + category + '-' + day"
-                        :cx="dayIndex * 50 + 25"
-                        :cy="180 - ((weeklyStats[day]?.[category] || 0) * 9)"
-                        r="3.5"
-                        :fill="getCategoryColor(category)"
-                        class="chart-dot"
-                        :style="{ opacity: 0.85 }"
-                      />
-                      <!-- Optional: Wert-Labels für Debug -->
-                      <text
-                        v-for="(day, dayIndex) in weekDays"
-                        :key="'label-' + category + '-' + day"
-                        :x="dayIndex * 50 + 25"
-                        :y="165 - ((weeklyStats[day]?.[category] || 0) * 9)"
-                        font-size="8"
-                        fill="rgba(255,255,255,0.4)"
-                        text-anchor="middle"
-                        :style="{ pointerEvents: 'none' }"
-                      >
-                        {{ weeklyStats[day]?.[category] || 0 }}
-                      </text>
-                    </g>
-                  </svg>
-                </div>
-
-                <!-- X-Axis Labels -->
-                <div class="x-axis">
-                  <span v-for="day in weekDays" :key="day" class="x-label">{{ day }}</span>
+                  <!-- HTML Balkendiagramm (bessere Kontrolle) -->
+                  <div class="bar-chart-html">
+                    <!-- Balken für jeden Wochentag -->
+                    <div v-for="(day, dayIndex) in weekDays" :key="'bar-day-' + day" class="bar-column">
+                      <!-- Gestapelter Balken -->
+                      <div class="stacked-bar">
+                        <!-- Segmente von oben nach unten -->
+                        <div
+                          v-for="category in chartCategories"
+                          :key="'seg-' + day + '-' + category"
+                          v-show="shouldShowBarSegment(day, category)"
+                          class="bar-segment-html"
+                          :style="{
+                            height: getBarSegmentHeight(day, category),
+                            backgroundColor: getCategoryColor(category),
+                            position: 'relative'
+                          }"
+                        >
+                          <!-- Wert-Label -->
+                          <span class="bar-value" v-if="shouldShowBarSegment(day, category)">
+                            {{ getBarSegmentValue(day, category) }}
+                          </span>
+                        </div>
+                      </div>
+                      <!-- Wochentag-Label -->
+                      <div class="bar-label">{{ day }}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -417,24 +399,6 @@
     <!-- Right Sidebar -->
     <aside class="right-sidebar">
       <!-- Quick Actions Card -->
-      <div class="sidebar-card quick-actions-card">
-        <h3>Schnellaktionen</h3>
-        <div class="actions-list">
-          <button class="action-btn" @click="scrollToSection('my-pantry-section')" title="Zur Vorratskammer">
-            <span class="action-icon">📦</span>
-            <span class="action-text">Vorratskammer</span>
-          </button>
-          <button class="action-btn" @click="scrollToSection('quick-stats-section')" title="Zu Statistiken">
-            <span class="action-icon">📊</span>
-            <span class="action-text">Statistiken</span>
-          </button>
-          <button class="action-btn" @click="scrollToSection('alerts-section')" title="Zu Meldungen">
-            <span class="action-icon">📢</span>
-            <span class="action-text">Meldungen</span>
-          </button>
-        </div>
-      </div>
-
       <!-- Quick Summary Card -->
       <div class="sidebar-card summary-card">
         <h3>Kurzübersicht</h3>
@@ -718,6 +682,22 @@ const getProductsByWeekdayAndCategory = (): Record<string, Record<string, number
     })
   })
 
+  // Berechne die aktuelle Woche (Montag - Sonntag)
+  const today = new Date()
+  const currentDayOfWeek = today.getDay() // 0 = Sonntag, 1 = Montag
+  const mondayOfCurrentWeek = new Date(today)
+  // Berechne wie viele Tage zurück bis Montag (0 = Sonntag -> 6 Tage zurück)
+  const daysBack = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1
+  mondayOfCurrentWeek.setDate(today.getDate() - daysBack)
+
+  // Setze auf Mitternacht
+  mondayOfCurrentWeek.setHours(0, 0, 0, 0)
+  const sundayOfCurrentWeek = new Date(mondayOfCurrentWeek)
+  sundayOfCurrentWeek.setDate(mondayOfCurrentWeek.getDate() + 6)
+  sundayOfCurrentWeek.setHours(23, 59, 59, 999)
+
+  console.log('📊 Wochenbereich:', mondayOfCurrentWeek, '-', sundayOfCurrentWeek)
+
   // Zähle Produkte nach Wochentag und Kategorie
   products.value.forEach(p => {
     // DEBUG: Zeige Produktdaten in der Konsole
@@ -726,19 +706,28 @@ const getProductsByWeekdayAndCategory = (): Record<string, Record<string, number
     }
 
     if (!p.addedDate || !p.category) return
-    const date = parseExpiryDate(p.addedDate)
-    const dayIndex = getDayOfWeek(date)
+    const addedDateObj = parseExpiryDate(p.addedDate)
 
-    if (dayIndex >= 0 && dayIndex < weekdays.length) {
-      const day = weekdays[dayIndex]
-      if (day && stats[day] && p.category in stats[day]) {
-        const dayStats = stats[day]
-        if (dayStats) {
-          dayStats[p.category] = (dayStats[p.category] ?? 0) + 1
+    // Überprüfe, ob das Produkt in der aktuellen Woche hinzugefügt wurde
+    if (addedDateObj >= mondayOfCurrentWeek && addedDateObj <= sundayOfCurrentWeek) {
+      const dayIndex = getDayOfWeek(addedDateObj)
+
+      if (dayIndex >= 0 && dayIndex < weekdays.length) {
+        const day = weekdays[dayIndex]
+        if (day && stats[day] && p.category in stats[day]) {
+          const dayStats = stats[day]
+          if (dayStats) {
+            dayStats[p.category] = (dayStats[p.category] ?? 0) + 1
+            console.log(`✅ Produkt gezählt: ${p.name} -> ${day}, ${p.category}`)
+          }
         }
       }
+    } else {
+      console.log(`⏭️ Produkt außerhalb der Woche: ${p.name}`)
     }
   })
+
+  console.log('📊 Final Weekly Stats:', stats)
 
   return stats
 }
@@ -847,13 +836,13 @@ const getGreeting = () => {
 }
 
 const currentGreeting = computed(() => getGreeting())
-// Category Colors
+// Category Colors - exakt wie in der Vorratskammer
 const categoryColors: Record<string, string> = {
-  'Gemüse': '#06D6A0',      // Grün
-  'Obst': '#9D4EDD',         // Lila
-  'Fleisch': '#FF6B6B',      // Rot
-  'Milchprodukte': '#FFD93D', // Gelb
-  'Sonstiges': '#4ECDC4'     // Cyan
+  'Gemüse': '#06d660',      // Grün - modern
+  'Obst': '#9D4EDD',         // Lila - elegant
+  'Fleisch': '#FF6B6B',      // Rot - energetisch
+  'Milchprodukte': '#FFD93D', // Gelb/Gold - warm
+  'Sonstiges': '#4ECDC4'     // Cyan/Türkis - frisch
 }
 
 const getCategoryColor = (category: string): string => {
@@ -908,6 +897,36 @@ const getChartPointsForCategory = (category: string): string => {
   const pointsString = points.join(' ')
   console.log(`Chart Points für ${category}:`, pointsString)
   return pointsString
+}
+
+/**
+ * Hilfsfunktion für Balken-Sichtbarkeit
+ */
+const shouldShowBarSegment = (day: string, category: string): boolean => {
+  const stats = weeklyStats.value[day]
+  if (!stats) return false
+  const value = stats[category]
+  if (!value) return false
+  return value > 0
+}
+
+/**
+ * Hilfsfunktion für Balken-Höhe und Kategorieanzahl
+ * Reduzierte Skalierung: statt 9px pro Einheit nur 4px
+ */
+const getBarSegmentHeight = (day: string, category: string): string => {
+  const stats = weeklyStats.value[day]
+  if (!stats || !stats[category]) return '0px'
+  return (stats[category] * 8) + 'px'
+}
+
+/**
+ * Hilfsfunktion um Produktanzahl zu erhalten
+ */
+const getBarSegmentValue = (day: string, category: string): number => {
+  const stats = weeklyStats.value[day]
+  if (!stats || !stats[category]) return 0
+  return stats[category]
 }
 
 const logout = () => {
@@ -1471,15 +1490,6 @@ const createGradientEffects = () => {
     linear-gradient(180deg, transparent 25%, rgba(255, 215, 0, 0.01) 50%, transparent 75%);
   pointer-events: none;
   z-index: 1;
-}
-
-/* Global CSS variable defaults to satisfy PostCSS resolver (prevents "Cannot resolve '--value'" errors) */
-:root {
-  --value: 0;
-  --width: 50%;
-  --percentage: 1;
-  --color: #64C8FF;
-  --progress: 0;
 }
 
 /* Content Wrapper - Main Content + Right Sidebar */
@@ -2116,6 +2126,27 @@ const createGradientEffects = () => {
     height: 100%;
     position: relative;
     z-index: 2;
+  }
+
+  .stacked-bar-chart {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bar-segment {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 0.5;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+  }
+
+  .bar-segment:hover {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    stroke-width: 1;
   }
 
   .chart-line {
@@ -3426,6 +3457,77 @@ const createGradientEffects = () => {
     font-size: 0.75rem;
     color: rgba(144, 238, 144, 0.8);
     margin: 0;
+  }
+
+  /* HTML Balkendiagramm Styles */
+  .bar-chart-html {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 1.2rem;
+    width: 100%;
+    height: 175px;
+    padding: 0;
+  }
+
+  .bar-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    flex: 1;
+  }
+
+  .stacked-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    max-width: 70px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  }
+
+  .bar-segment-html {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    opacity: 0.9;
+    cursor: pointer;
+  }
+
+  .bar-segment-html:hover {
+    opacity: 1;
+    filter: brightness(1.15);
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2);
+  }
+
+  .bar-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 700;
+    font-size: 0.65rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bar-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    text-align: center;
   }
 
   /* Responsive - Hide sidebar on small screens */
