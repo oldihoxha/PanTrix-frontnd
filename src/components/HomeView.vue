@@ -462,8 +462,17 @@ const getProductsByCategory = (category: string): number => {
 /**
  * Zählt alle aktiven Produkte
  */
+/**
+ * Zählt AKTIVE Produkte (nicht abgelaufen, nicht "saved")
+ */
 const getActiveProductsCount = (): number => {
-  return products.value.filter(p => (p.status === 'fresh' || p.status === undefined || !p.status)).length
+  const today = new Date()
+  return products.value.filter(p => {
+    // Ausschluss: "saved" und "expired" Produkte
+    if (p.status === 'saved' || p.status === 'expired') return false
+    const expiryDate = parseExpiryDate(p.expiryDate)
+    return expiryDate >= today
+  }).length
 }
 
 /**
@@ -574,11 +583,14 @@ const getExpiredProductsCount = (): number => {
 }
 
 /**
- * Zählt verfügbare (noch nicht abgelaufene) Produkte
+ * Zählt verfügbare (aktive, noch nicht abgelaufene) Produkte
+ * Ausschluss: "saved" Produkte und abgelaufene
  */
 const getAvailableProductsCount = (): number => {
   const today = new Date()
   return products.value.filter(p => {
+    // Ausschluss: "saved" Produkte
+    if (p.status === 'saved') return false
     const expiryDate = parseExpiryDate(p.expiryDate)
     return expiryDate >= today
   }).length

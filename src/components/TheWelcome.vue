@@ -245,7 +245,7 @@ const init3DScene = () => {
     }, delayVertical * 1000)
   }
 
-  // Erstelle 3 große radiale Gradients -  ROT PALETTE
+  // Erstelle 3 große radiale Gradients - FARBPALETTE (Orange, Rot, Magenta)
   const gradientConfigs = [
     {
       name: 'bottom-left',
@@ -253,7 +253,7 @@ const init3DScene = () => {
       startY: 0.8,
       offsetX: 0.15,
       offsetY: 0.15,
-      colors: ['rgba(255, 64, 64, 0.8)', 'rgba(255, 46, 46, 0.6)', 'rgba(255, 46, 46, 0.2)', 'transparent'],
+      colors: ['rgba(255,96,60,0.8)', 'rgba(255, 110, 60, 0.6)', 'rgba(255, 110, 60, 0.2)', 'transparent'],
       size: 700
     },
     {
@@ -271,7 +271,7 @@ const init3DScene = () => {
       startY: 0.8,
       offsetX: 0.15,
       offsetY: 0.15,
-      colors: ['rgba(255, 46, 46, 0.8)', 'rgba(255, 32, 32, 0.6)', 'rgba(255, 32, 32, 0.2)', 'transparent'],
+      colors: ['rgba(220,80,143,0.8)', 'rgba(220, 80, 160, 0.6)', 'rgba(220, 80, 160, 0.2)', 'transparent'],
       size: 700
     }
   ]

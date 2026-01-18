@@ -83,22 +83,35 @@
                 backgroundColor: product.imageBase64 ? 'transparent' : getCategoryColor(product.category)
               }"
             >
+              <!-- Image Overlay -->
               <div v-if="product.imageBase64" class="image-overlay"></div>
-              <button v-if="product.id" class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
+
+              <!-- Top Island - Delete Button -->
+              <div class="button-island button-island-top">
+                <button v-if="product.id" class="island-btn delete-btn-island" @click="deleteProduct(product.id)" title="Entfernen">
+                  Entfernen
+                </button>
+              </div>
+
+              <!-- Card Content - Middle -->
               <div class="card-content">
                 <div class="product-name">{{ product.name }}</div>
                 <div class="product-expiry">{{ formatDate(product.expiryDate) }}</div>
               </div>
-              <button
-                v-if="product.id && product.status !== 'saved'"
-                class="consume-btn"
-                :style="{ backgroundColor: getCategoryColor(product.category) }"
-                @click="rescueProduct(product.id)"
-                title="Produkt als verbraucht markieren">
-                Aufgegessen
-              </button>
-              <div v-else-if="product.status === 'saved'" class="consume-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
-                ✓ Aufgegessen
+
+              <!-- Bottom Island - Consume Button -->
+              <div class="button-island button-island-bottom">
+                <button
+                  v-if="product.id && product.status !== 'saved'"
+                  class="island-btn consume-btn-island"
+                  :style="{ backgroundColor: getCategoryColor(product.category) }"
+                  @click="rescueProduct(product.id)"
+                  title="Produkt als verbraucht markieren">
+                  Verzehrt
+                </button>
+                <div v-else-if="product.status === 'saved'" class="island-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
+                  ✓ Verzehrt
+                </div>
               </div>
             </div>
           </div>
@@ -118,22 +131,35 @@
                 backgroundColor: product.imageBase64 ? 'transparent' : '#333333'
               }"
             >
+              <!-- Image Overlay -->
               <div v-if="product.imageBase64" class="image-overlay expired-overlay"></div>
-              <button v-if="product.id" class="delete-btn" @click="deleteProduct(product.id)" title="Löschen">×</button>
+
+              <!-- Top Island - Delete Button -->
+              <div class="button-island button-island-top">
+                <button v-if="product.id" class="island-btn delete-btn-island" @click="deleteProduct(product.id)" title="Entfernen">
+                  Entfernen
+                </button>
+              </div>
+
+              <!-- Card Content - Middle -->
               <div class="card-content">
                 <div class="product-name">{{ product.name }}</div>
                 <div class="product-expiry expired-date">{{ formatDate(product.expiryDate) }}</div>
               </div>
-              <button
-                v-if="product.id && product.status !== 'saved'"
-                class="consume-btn expired-consume"
-                :style="{ backgroundColor: getCategoryColor(product.category) }"
-                @click="rescueProduct(product.id)"
-                title="Produkt als verbraucht markieren">
-                Aufgegessen
-              </button>
-              <div v-else-if="product.status === 'saved'" class="consume-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
-                ✓ Aufgegessen
+
+              <!-- Bottom Island - Consume Button -->
+              <div class="button-island button-island-bottom">
+                <button
+                  v-if="product.id && product.status !== 'saved'"
+                  class="island-btn consume-btn-island expired-consume"
+                  :style="{ backgroundColor: getCategoryColor(product.category) }"
+                  @click="rescueProduct(product.id)"
+                  title="Produkt als verbraucht markieren">
+                  Verzehrt
+                </button>
+                <div v-else-if="product.status === 'saved'" class="island-badge" :style="{ backgroundColor: getCategoryColor(product.category) }">
+                  ✓ Verzehrt
+                </div>
               </div>
             </div>
           </div>
@@ -509,7 +535,7 @@ const activeProducts = computed(() => {
 })
 
 const expiredProducts = computed(() => {
-  return filteredProducts.value.filter(p => isProductExpired(p.expiryDate))
+  return filteredProducts.value.filter(p => isProductExpired(p.expiryDate) && p.status !== 'saved')
 })
 
 const toggleSortDropdown = () => {
@@ -747,7 +773,7 @@ const formatDate = (dateString: string): string => {
 }
 
 const categoryColors: Record<string, string> = {
-  'Gemüse': '#06D6A0',      // Grün - modern
+  'Gemüse': '#06d660',      // Grün - modern
   'Obst': '#9D4EDD',         // Lila - elegant
   'Fleisch': '#FF6B6B',      // Rot - energetisch
   'Milchprodukte': '#FFD93D', // Gelb/Gold - warm
@@ -811,17 +837,22 @@ const rescueProduct = async (id: number) => {
 .pantry-main-container {
   max-width: 1400px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 30px;
   padding: 3rem;
   min-height: 800px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25),
-              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2),
+              0 0 40px rgba(255, 255, 255, 0.05);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  padding-bottom: 4rem;
+  will-change: transform;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Glass Glow Effect */
@@ -864,6 +895,9 @@ const rescueProduct = async (id: number) => {
   position: relative;
   overflow: hidden;
   z-index: 1;
+  will-change: background, border-color, color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .category-btn::before {
@@ -1176,10 +1210,11 @@ const rescueProduct = async (id: number) => {
 
 /* Products Grid */
 .products-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
   min-height: 500px;
+  width: 100%;
 }
 
 /* Empty State */
@@ -1219,20 +1254,155 @@ const rescueProduct = async (id: number) => {
 /* Product Cards */
 .product-card {
   aspect-ratio: 1 / 1;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
   border-radius: 24px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 0;
   cursor: pointer;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
-              inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25),
+              inset 0 1px 1px rgba(255, 255, 255, 0.2),
+              0 0 25px rgba(255, 255, 255, 0.08);
   position: relative;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: local;
+  will-change: transform, box-shadow, border-color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.product-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35),
+              inset 0 1px 1px rgba(255, 255, 255, 0.3),
+              0 0 30px rgba(255, 255, 255, 0.15);
+  transform: translateY(-4px);
+}
+
+/* Island Button Positioning */
+.button-island {
+  position: absolute;
+  z-index: 20;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: 20px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+              inset 0 1px 1px rgba(255, 255, 255, 0.3),
+              0 0 20px rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  max-width: 200px;
+  will-change: transform, box-shadow;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.button-island-top {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(25, 25, 35, 0.95), rgba(15, 15, 25, 0.95));
+}
+
+.button-island-top:hover {
+  transform: translateX(-50%) translateY(-1px);
+  box-shadow: 0 14px 48px rgba(0, 0, 0, 0.5),
+              inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.button-island-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  right: auto;
+  top: auto;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(25, 25, 35, 0.95), rgba(15, 15, 25, 0.95));
+  z-index: 20;
+}
+
+.button-island-bottom:hover {
+  transform: translateX(-50%) translateY(1px);
+  box-shadow: 0 14px 48px rgba(0, 0, 0, 0.5),
+              inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.island-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.98);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.delete-btn-island {
+  color: rgba(255, 150, 150, 0.98);
+}
+
+.delete-btn-island:hover {
+  color: rgba(255, 200, 200, 1);
+  text-shadow: 0 0 12px rgba(255, 100, 110, 0.6);
+  transform: scale(1.08);
+}
+
+.delete-btn-island:active {
+  transform: scale(0.98);
+}
+
+.consume-btn-island {
+  color: rgba(255, 255, 255, 0.98);
+}
+
+.consume-btn-island:hover {
+  filter: brightness(1.3);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+  transform: scale(1.08);
+}
+
+.consume-btn-island:active {
+  transform: scale(0.98);
+}
+
+.island-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.98);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
 .product-card::before {
@@ -1260,10 +1430,9 @@ const rescueProduct = async (id: number) => {
 
 .product-card:hover {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-6px);
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.25),
-              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+              inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
 
 .card-content {
@@ -1275,43 +1444,50 @@ const rescueProduct = async (id: number) => {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 1.2rem 0.8rem 1.2rem 0.8rem;
-  padding-bottom: 56px;
+  flex: 1;
+  padding: 1rem 0.8rem;
+  text-align: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Consume Button - Bottom Full Width */
+/* Old button styles - now using island buttons */
 .consume-btn {
+  display: none;
+}
+
+.delete-btn {
+  display: none;
+}
+
+.consume-badge {
+  display: none;
+}
+
+.consume-badge-old {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   width: 100%;
   height: 44px;
-  border: none;
   border-radius: 0 0 24px 24px;
   font-size: 0.85rem;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.95);
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
   z-index: 11;
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
 .consume-btn:hover {
-  height: 50px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
   filter: brightness(1.1);
 }
 
 .consume-btn:active {
-  height: 40px;
   filter: brightness(0.95);
 }
 
@@ -1409,20 +1585,36 @@ const rescueProduct = async (id: number) => {
 
 .product-name {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.98);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.5;
   max-width: 100%;
   word-wrap: break-word;
   text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .product-expiry {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-align: center;
+  padding: 0.4rem 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .days-left {
@@ -1485,10 +1677,12 @@ const rescueProduct = async (id: number) => {
 
 /* Products Sections */
 .products-section {
-  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: 1.8rem;
+  width: 100%;
+  overflow: visible;
+  padding-bottom: 2rem;
 }
 
 .section-title {
@@ -1510,13 +1704,15 @@ const rescueProduct = async (id: number) => {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 1.8rem;
+  padding-bottom: 2rem;
+  overflow: visible;
 }
 
 /* Expired Product Styling */
 .expired-product {
   background: linear-gradient(135deg, rgba(255, 100, 100, 0.12), rgba(255, 150, 100, 0.08));
   border-color: rgba(255, 100, 100, 0.35);
-  animation: pulse-expired 2.5s ease-in-out infinite;
+  animation: gentle-float 3s ease-in-out infinite;
 }
 
 .expired-product:hover {
@@ -1533,19 +1729,36 @@ const rescueProduct = async (id: number) => {
 /* Pulse Animation for Expired Products */
 @keyframes pulse-expired {
   0% {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-                inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                0 0 0 0 rgba(255, 100, 100, 0.4);
+    opacity: 1;
+    transform: scale(1);
   }
   50% {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-                inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                0 0 0 8px rgba(255, 100, 100, 0);
+    opacity: 0.85;
+    transform: scale(1.02);
   }
   100% {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-                inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                0 0 0 0 rgba(255, 100, 100, 0);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes subtle-shimmer {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.95;
+    filter: brightness(1.05);
   }
 }
 
@@ -1887,8 +2100,12 @@ const rescueProduct = async (id: number) => {
 /* Category Selector */
 .category-selector {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.8rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scroll-behavior: smooth;
 }
 
 .category-select-btn {
@@ -1904,6 +2121,8 @@ const rescueProduct = async (id: number) => {
   align-items: center;
   gap: 0.6rem;
   letter-spacing: 0.3px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .select-dot {
@@ -2260,13 +2479,16 @@ const rescueProduct = async (id: number) => {
 .image-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.35) 50%, rgba(0, 0, 0, 0.45) 100%);
   border-radius: 20px;
   z-index: 1;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .image-overlay.expired-overlay {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.45) 50%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 .product-card.product-item > * {
